@@ -9,7 +9,6 @@ import os
 
 FILE_NAME = 'ultrasound_log.csv'
 
-# --- 更新後的名單 ---
 # 醫師名單
 DOCTORS = [
     "朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", 
@@ -47,7 +46,6 @@ UNIT_LIST = [
 # ==========================================
 
 def load_data():
-    """讀取資料，如果檔案不存在則自動建立"""
     if not os.path.exists(FILE_NAME):
         df = pd.DataFrame(columns=[
             "狀態", "職稱", "借用人", "借用時間", "使用部位", "所在位置", "歸還人", "歸還時間", "持續時間(分)"
@@ -61,7 +59,6 @@ def load_data():
     return df
 
 def save_data(df):
-    """儲存資料"""
     df.to_csv(FILE_NAME, index=False)
 
 # ==========================================
@@ -71,7 +68,6 @@ def save_data(df):
 def main():
     st.set_page_config(page_title="內科超音波動態", page_icon="🏥", layout="centered")
     
-    # CSS 優化介面
     st.markdown("""
         <style>
         #MainMenu {visibility: hidden;}
@@ -82,13 +78,13 @@ def main():
             background-color: #f0f2f6;
             border-radius: 5px;
             margin-right: 10px;
+            cursor: pointer;
         }
         </style>
         """, unsafe_allow_html=True)
 
     df = load_data()
     
-    # 判斷狀態
     current_status = "可借用"
     last_record_index = None
     
@@ -98,7 +94,6 @@ def main():
             current_status = "使用中"
             last_record_index = df.index[-1]
 
-    # --- 標題區 ---
     st.title("🏥 內科超音波 登記站")
 
     # ==========================================
@@ -107,21 +102,23 @@ def main():
     if current_status == "可借用":
         st.success("### 🟢 目前狀態：在庫可借")
         
+        # --- 修正重點：把職稱選擇搬到 form 外面 ---
+        st.write("#### 1. 借用人身分")
+        # 這裡的 radio 一改變，頁面會馬上刷新，下面的名單就會變了！
+        role_select = st.radio("請選擇職別：", ["醫師", "專科護理師"], horizontal=True)
+        
+        # 決定要顯示哪一份名單
+        if role_select == "醫師":
+            current_name_list = DOCTORS
+        else:
+            current_name_list = NPS
+
+        # --- 表單開始 ---
         with st.form("borrow_form"):
-            st.write("#### 1. 借用人身分")
-            
-            # 第一層：選擇職稱
-            role_select = st.radio("請選擇職別：", ["醫師", "專科護理師"], horizontal=True)
-            
-            # 第二層：根據職稱顯示對應名單
-            if role_select == "醫師":
-                name_list = DOCTORS
-            else:
-                name_list = NPS
-            
             col1, col2 = st.columns(2)
             with col1:
-                user = st.selectbox(f"選擇{role_select}姓名", name_list)
+                # 這裡會根據上面的選擇，自動顯示對應的名單
+                user = st.selectbox(f"選擇{role_select}姓名", current_name_list)
             with col2:
                 reason = st.selectbox("使用部位", BODY_PARTS)
             
@@ -172,7 +169,6 @@ def main():
         
         with st.form("return_form"):
             st.write("#### 歸還確認")
-            # 歸還時，預設選取原本的借用人
             default_idx = ALL_STAFF.index(last_user) if last_user in ALL_STAFF else 0
             returner = st.selectbox("歸還人", ALL_STAFF, index=default_idx)
             
