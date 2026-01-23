@@ -68,27 +68,36 @@ def save_data(df):
 def main():
     st.set_page_config(page_title="內科超音波動態", page_icon="🏥", layout="centered")
     
-    # CSS 優化：強制白底黑字 + 表格美化
+    # CSS 優化：強制白底黑字 + 手機排版
     st.markdown("""
         <style>
-        /* === 強制全站亮色模式 === */
-        [data-testid="stAppViewContainer"] { background-color: #ffffff !important; }
-        [data-testid="stHeader"] { background-color: rgba(0,0,0,0) !important; }
-        .stMarkdown, h1, h2, h3, h4, h5, h6, p, div, span, li, label { color: #000000 !important; }
+        /* === 強制亮色模式 (即使手機開深色模式也會生效) === */
         
-        /* === 修正表格樣式 (強制白底黑字) === */
-        [data-testid="stTable"] {
+        /* 1. 強制背景全白 */
+        [data-testid="stAppViewContainer"] {
             background-color: #ffffff !important;
+        }
+        [data-testid="stHeader"] {
+            background-color: rgba(0,0,0,0) !important;
+        }
+        
+        /* 2. 強制文字全黑 */
+        .stMarkdown, h1, h2, h3, h4, h5, h6, p, div, span, li, label {
             color: #000000 !important;
         }
-        thead tr th {
+        
+        /* 3. 修正輸入框背景 (避免在深色模式下變成黑底) */
+        .stTextInput > div > div {
             background-color: #f0f2f6 !important;
             color: #000000 !important;
-            font-weight: bold !important;
         }
-        tbody tr td {
-            color: #333333 !important;
-            border-bottom: 1px solid #eee !important;
+        .stSelectbox > div > div {
+            background-color: #f0f2f6 !important;
+            color: #000000 !important;
+        }
+        /* 下拉選單內的文字 */
+        div[data-baseweb="select"] span {
+            color: #000000 !important;
         }
 
         /* === 介面隱藏 === */
@@ -116,11 +125,12 @@ def main():
         /* === 狀態看板樣式 === */
         .status-label {
             font-size: 1.1rem;
-            color: #333 !important;
+            color: #333 !important; /* 強制深灰 */
             text-align: center;
             margin-bottom: 5px;
             font-weight: bold;
         }
+        
         .status-box-green {
             background-color: #d4edda !important;
             color: #155724 !important;
@@ -132,6 +142,7 @@ def main():
             border: 2px solid #c3e6cb;
             margin-bottom: 20px;
         }
+
         .status-box-red {
             background-color: #f8d7da !important;
             color: #721c24 !important;
@@ -163,6 +174,7 @@ def main():
     # 介面 A：借出登記 (綠色)
     # ==========================================
     if current_status == "可借用":
+        # 上下兩行顯示
         st.markdown("""
             <div class="status-label">目前狀況</div>
             <div class="status-box-green">🟢 在庫中</div>
@@ -216,6 +228,7 @@ def main():
         last_time = df.iloc[-1]["借用時間"]
         last_loc = df.iloc[-1]["所在位置"]
         
+        # 上下兩行顯示
         st.markdown("""
             <div class="status-label">目前狀況</div>
             <div class="status-box-red">🔴 使用中</div>
@@ -237,6 +250,7 @@ def main():
             
             st.markdown("---")
             
+            # 色塊顯示檢查事項
             st.warning("📦 **歸還前請檢查**")
             check_integrity = st.checkbox("✅ 我確認：探頭清潔、線材收好、機器功能正常")
             
@@ -270,16 +284,10 @@ def main():
         tab1, tab2, tab3, tab4 = st.tabs(["📋 詳細表", "🩺 職稱", "🏆 人員", "🔍 部位"])
         
         with tab1:
-            # === 重要修改：改用 static Table 解決深色模式問題 ===
-            st.write("#### 歷史紀錄 (顯示最新 10 筆)")
-            
-            # 準備要顯示的資料 (只取需要的欄位 + 最新的10筆)
-            display_df = df[["借用時間", "職稱", "借用人", "所在位置", "使用部位", "歸還時間"]].sort_index(ascending=False).head(10)
-            
-            # 使用 st.table 而不是 st.dataframe
-            # st.table 會生成純 HTML 表格，完美支援我們的強制白底 CSS
-            st.table(display_df)
-
+            st.dataframe(
+                df[["借用時間", "職稱", "借用人", "所在位置", "使用部位", "歸還時間"]].sort_index(ascending=False), 
+                use_container_width=True
+            )
         with tab2:
             if "職稱" in df.columns:
                 fig = px.pie(df, names='職稱', title='職稱比例', hole=0.4)
