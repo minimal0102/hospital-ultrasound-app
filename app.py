@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+import plotly.express as px  # 新增：引入畫圓餅圖的工具
+from datetime import datetime, timedelta, timezone
 import os
 
 # ==========================================
@@ -26,7 +27,7 @@ NPS = [
     "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛期"
 ]
 
-# 全體名單 (歸還時使用)
+# 全體名單
 ALL_STAFF = DOCTORS + NPS
 
 # 使用部位
@@ -44,6 +45,12 @@ UNIT_LIST = [
 # ==========================================
 # 2. 核心功能函數
 # ==========================================
+
+def get_taiwan_time():
+    """取得台灣目前的 datetime 物件"""
+    utc_dt = datetime.now(timezone.utc)
+    tw_dt = utc_dt.astimezone(timezone(timedelta(hours=8)))
+    return tw_dt
 
 def load_data():
     if not os.path.exists(FILE_NAME):
@@ -97,27 +104,22 @@ def main():
     st.title("🏥 內科超音波 登記站")
 
     # ==========================================
-    # 介面 A：借出登記 (綠色)
+    # 介面 A：借出登記
     # ==========================================
     if current_status == "可借用":
         st.success("### 🟢 目前狀態：在庫可借")
         
-        # --- 修正重點：把職稱選擇搬到 form 外面 ---
         st.write("#### 1. 借用人身分")
-        # 這裡的 radio 一改變，頁面會馬上刷新，下面的名單就會變了！
         role_select = st.radio("請選擇職別：", ["醫師", "專科護理師"], horizontal=True)
         
-        # 決定要顯示哪一份名單
         if role_select == "醫師":
             current_name_list = DOCTORS
         else:
             current_name_list = NPS
 
-        # --- 表單開始 ---
         with st.form("borrow_form"):
             col1, col2 = st.columns(2)
             with col1:
-                # 這裡會根據上面的選擇，自動顯示對應的名單
                 user = st.selectbox(f"選擇{role_select}姓名", current_name_list)
             with col2:
                 reason = st.selectbox("使用部位", BODY_PARTS)
@@ -131,11 +133,14 @@ def main():
                 if location == "請選擇前往單位...":
                     st.error("⚠️ 請選擇單位，以免機器遺失！")
                 else:
+                    tw_now = get_taiwan_time()
+                    tw_time_str = tw_now.strftime("%Y-%m-%d %H:%M:%S")
+
                     new_record = {
                         "狀態": "借出",
                         "職稱": role_select,
                         "借用人": user,
-                        "借用時間": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "借用時間": tw_time_str,
                         "使用部位": reason,
                         "所在位置": location,
                         "歸還人": None,
@@ -148,7 +153,7 @@ def main():
                     st.rerun()
 
     # ==========================================
-    # 介面 B：歸還登記 (紅色)
+    # 介面 B：歸還登記
     # ==========================================
     else:
         last_user = df.iloc[-1]["借用人"]
@@ -175,13 +180,15 @@ def main():
             submit_return = st.form_submit_button("↩️ 確認歸還 / 歸位", use_container_width=True)
             
             if submit_return:
-                return_time = datetime.now()
-                borrow_time = datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
-                duration = round((return_time - borrow_time).total_seconds() / 60, 1)
+                tw_return_now = get_taiwan_time()
+                tw_return_str = tw_return_now.strftime("%Y-%m-%d %H:%M:%S")
+                
+                borrow_time_obj = datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
+                duration = round((tw_return_now.replace(tzinfo=None) - borrow_time_obj).total_seconds() / 60, 1)
                 
                 df.at[last_record_index, "狀態"] = "歸還"
                 df.at[last_record_index, "歸還人"] = returner
-                df.at[last_record_index, "歸還時間"] = return_time.strftime("%Y-%m-%d %H:%M:%S")
+                df.at[last_record_index, "歸還時間"] = tw_return_str
                 df.at[last_record_index, "持續時間(分)"] = duration
                 
                 save_data(df)
@@ -189,25 +196,45 @@ def main():
                 st.rerun()
 
     # ==========================================
-    # 統計區
+    # 統計區 (更新：圓餅圖 + 新順序)
     # ==========================================
     st.markdown("---")
     st.subheader("📊 統計數據")
     
     if not df.empty:
-        tab1, tab2, tab3, tab4 = st.tabs(["職稱統計", "部位統計", "人員排行", "詳細表"])
+        # 依照你的要求調整順序：詳細表 -> 職稱 -> 人員 -> 部位
+        tab1, tab2, tab3, tab4 = st.tabs(["📋 詳細表", "🩺 職稱統計", "🏆 人員統計", "🔍 部位統計"])
         
+        # 1. 詳細表 (Detail Table)
         with tab1:
-            if "職稱" in df.columns:
-                st.bar_chart(df["職稱"].value_counts())
+            st.write("#### 歷史紀錄 (最新在最上)")
+            st.dataframe(
+                df[["借用時間", "職稱", "借用人", "所在位置", "使用部位", "歸還時間"]].sort_index(ascending=False), 
+                use_container_width=True
+            )
+
+        # 2. 職稱統計 (Pie Chart)
         with tab2:
-            if "使用部位" in df.columns:
-                st.bar_chart(df["使用部位"].value_counts())
+            if "職稱" in df.columns:
+                fig = px.pie(df, names='職稱', title='職稱使用比例', hole=0.4)
+                st.plotly_chart(fig, use_container_width=True)
+
+        # 3. 人員統計 (Pie Chart)
         with tab3:
             if "借用人" in df.columns:
-                st.bar_chart(df["借用人"].value_counts())
+                # 統計每個人借了幾次
+                user_counts = df["借用人"].value_counts().reset_index()
+                user_counts.columns = ["借用人", "次數"]
+                fig = px.pie(user_counts, names='借用人', values='次數', title='同仁使用佔比')
+                st.plotly_chart(fig, use_container_width=True)
+                
+        # 4. 部位統計 (Pie Chart)
         with tab4:
-            st.dataframe(df[["借用時間", "職稱", "借用人", "所在位置", "使用部位", "歸還時間"]].sort_index(ascending=False), use_container_width=True)
+            if "使用部位" in df.columns:
+                part_counts = df["使用部位"].value_counts().reset_index()
+                part_counts.columns = ["使用部位", "次數"]
+                fig = px.pie(part_counts, names='使用部位', values='次數', title='檢查部位佔比')
+                st.plotly_chart(fig, use_container_width=True)
 
 if __name__ == "__main__":
     main()
