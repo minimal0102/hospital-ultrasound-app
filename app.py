@@ -68,43 +68,72 @@ def save_data(df):
 def main():
     st.set_page_config(page_title="內科超音波動態", page_icon="🏥", layout="centered")
     
-    # CSS 優化：針對手機排版調整
+    # CSS 優化：強制白底黑字 + 手機排版
     st.markdown("""
         <style>
-        /* 隱藏 Footer 和選單 */
+        /* === 強制亮色模式 (即使手機開深色模式也會生效) === */
+        
+        /* 1. 強制背景全白 */
+        [data-testid="stAppViewContainer"] {
+            background-color: #ffffff !important;
+        }
+        [data-testid="stHeader"] {
+            background-color: rgba(0,0,0,0) !important;
+        }
+        
+        /* 2. 強制文字全黑 */
+        .stMarkdown, h1, h2, h3, h4, h5, h6, p, div, span, li, label {
+            color: #000000 !important;
+        }
+        
+        /* 3. 修正輸入框背景 (避免在深色模式下變成黑底) */
+        .stTextInput > div > div {
+            background-color: #f0f2f6 !important;
+            color: #000000 !important;
+        }
+        .stSelectbox > div > div {
+            background-color: #f0f2f6 !important;
+            color: #000000 !important;
+        }
+        /* 下拉選單內的文字 */
+        div[data-baseweb="select"] span {
+            color: #000000 !important;
+        }
+
+        /* === 介面隱藏 === */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
         
-        /* 手機按鈕優化 */
+        /* === 手機按鈕優化 === */
         .stButton button {
             height: 3em;
             font-size: 1.2rem;
             font-weight: bold;
+            border: 1px solid #ccc;
         }
         
-        /* 單選按鈕優化 */
+        /* === 單選按鈕優化 === */
         div[role='radiogroup'] > label {
-            background-color: #f0f2f6;
+            background-color: #f0f2f6 !important;
             padding: 10px 15px;
             border-radius: 8px;
             margin-right: 5px;
             border: 1px solid #d1d5db;
         }
         
-        /* 狀態標題 (第一行) */
+        /* === 狀態看板樣式 === */
         .status-label {
-            font-size: 1rem;
-            color: #666;
+            font-size: 1.1rem;
+            color: #333 !important; /* 強制深灰 */
             text-align: center;
             margin-bottom: 5px;
             font-weight: bold;
         }
         
-        /* 狀態內容 (第二行 - 綠色) */
         .status-box-green {
-            background-color: #d4edda;
-            color: #155724;
+            background-color: #d4edda !important;
+            color: #155724 !important;
             padding: 15px;
             border-radius: 10px;
             text-align: center;
@@ -114,10 +143,9 @@ def main():
             margin-bottom: 20px;
         }
 
-        /* 狀態內容 (第二行 - 紅色) */
         .status-box-red {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: #f8d7da !important;
+            color: #721c24 !important;
             padding: 15px;
             border-radius: 10px;
             text-align: center;
@@ -146,7 +174,7 @@ def main():
     # 介面 A：借出登記 (綠色)
     # ==========================================
     if current_status == "可借用":
-        # === 手機版面優化：上下兩行 ===
+        # 上下兩行顯示
         st.markdown("""
             <div class="status-label">目前狀況</div>
             <div class="status-box-green">🟢 在庫中</div>
@@ -200,13 +228,12 @@ def main():
         last_time = df.iloc[-1]["借用時間"]
         last_loc = df.iloc[-1]["所在位置"]
         
-        # === 手機版面優化：上下兩行 ===
+        # 上下兩行顯示
         st.markdown("""
             <div class="status-label">目前狀況</div>
             <div class="status-box-red">🔴 使用中</div>
             """, unsafe_allow_html=True)
         
-        # 顯示借用資訊
         col1, col2 = st.columns(2)
         with col1:
             st.metric("👤 使用者", f"{last_user}")
@@ -216,7 +243,6 @@ def main():
             
         st.info(f"⏰ 借出時間：{last_time}")
         
-        # === 歸還表單 (加入檢查機制) ===
         with st.form("return_form"):
             st.write("#### 歸還確認")
             default_idx = ALL_STAFF.index(last_user) if last_user in ALL_STAFF else 0
@@ -224,16 +250,14 @@ def main():
             
             st.markdown("---")
             
-            # 🟡 新增：歸還檢查區塊 (色塊顯示)
+            # 色塊顯示檢查事項
             st.warning("📦 **歸還前請檢查**")
-            # 這裡就是你要的色塊選擇
             check_integrity = st.checkbox("✅ 我確認：探頭清潔、線材收好、機器功能正常")
             
             st.write("")
             submit_return = st.form_submit_button("↩️ 確認無誤 / 歸還", use_container_width=True)
             
             if submit_return:
-                # 檢查是否有勾選
                 if not check_integrity:
                     st.error("⚠️ 請務必勾選「確認物品完整」才能進行歸還！")
                 else:
@@ -247,7 +271,7 @@ def main():
                     df.at[last_record_index, "持續時間(分)"] = duration
                     
                     save_data(df)
-                    st.success("歸還成功！感謝您的配合 🙏")
+                    st.success("歸還成功！")
                     st.rerun()
 
     # ==========================================
