@@ -23,7 +23,7 @@ NPS = [
     "侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", 
     "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", 
     "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", 
-    "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛期"
+    "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛琪"
 ]
 
 ALL_STAFF = DOCTORS + NPS
@@ -68,10 +68,7 @@ def save_data(df):
 def main():
     st.set_page_config(page_title="內科超音波動態", page_icon="🏥", layout="centered")
     
-    # --- 介面優化 CSS ---
-    # 1. 強制隱藏 Streamlit 的 Footer (Hosted with Streamlit) 和選單
-    # 2. 加大手機版按鈕的高度，比較好按
-    # 3. 調整 Radio Button 的樣式，讓它像卡片一樣
+    # CSS 優化：針對手機排版調整
     st.markdown("""
         <style>
         /* 隱藏 Footer 和選單 */
@@ -79,30 +76,54 @@ def main():
         footer {visibility: hidden;}
         header {visibility: hidden;}
         
-        /* 優化手機按鈕大小 */
+        /* 手機按鈕優化 */
         .stButton button {
             height: 3em;
             font-size: 1.2rem;
             font-weight: bold;
         }
         
-        /* 優化選項卡片 */
+        /* 單選按鈕優化 */
         div[role='radiogroup'] > label {
             background-color: #f0f2f6;
-            padding: 10px 20px;
-            border-radius: 10px;
-            margin-right: 10px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-right: 5px;
             border: 1px solid #d1d5db;
         }
-        div[role='radiogroup'] > label:hover {
-            background-color: #e6e9ef;
+        
+        /* 狀態標題 (第一行) */
+        .status-label {
+            font-size: 1rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 5px;
+            font-weight: bold;
         }
         
-        /* 狀態看板樣式 */
-        .status-card {
-            padding: 20px;
+        /* 狀態內容 (第二行 - 綠色) */
+        .status-box-green {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
             border-radius: 10px;
             text-align: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            border: 2px solid #c3e6cb;
+            margin-bottom: 20px;
+        }
+
+        /* 狀態內容 (第二行 - 紅色) */
+        .status-box-red {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            border: 2px solid #f5c6cb;
             margin-bottom: 20px;
         }
         </style>
@@ -125,11 +146,10 @@ def main():
     # 介面 A：借出登記 (綠色)
     # ==========================================
     if current_status == "可借用":
-        # 使用自訂的 HTML/CSS 來顯示更漂亮的狀態條
+        # === 手機版面優化：上下兩行 ===
         st.markdown("""
-            <div class="status-card" style="background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;">
-                <h2 style="margin:0;">🟢 目前狀態：在庫可借</h2>
-            </div>
+            <div class="status-label">目前狀況</div>
+            <div class="status-box-green">🟢 在庫中</div>
             """, unsafe_allow_html=True)
         
         st.write("#### 1. 借用人身分")
@@ -147,7 +167,6 @@ def main():
             location_options = ["請選擇前往單位..."] + UNIT_LIST
             location = st.selectbox("2. 機器移動前往單位", location_options)
             
-            # 加大間距
             st.write("")
             submit = st.form_submit_button("✅ 登記並取走機器", use_container_width=True)
             
@@ -181,14 +200,13 @@ def main():
         last_time = df.iloc[-1]["借用時間"]
         last_loc = df.iloc[-1]["所在位置"]
         
-        # 紅色狀態條
+        # === 手機版面優化：上下兩行 ===
         st.markdown("""
-            <div class="status-card" style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;">
-                <h2 style="margin:0;">🔴 機器使用中</h2>
-                <p style="margin:5px 0 0 0;">請掃描此處歸還</p>
-            </div>
+            <div class="status-label">目前狀況</div>
+            <div class="status-box-red">🔴 使用中</div>
             """, unsafe_allow_html=True)
         
+        # 顯示借用資訊
         col1, col2 = st.columns(2)
         with col1:
             st.metric("👤 使用者", f"{last_user}")
@@ -198,27 +216,39 @@ def main():
             
         st.info(f"⏰ 借出時間：{last_time}")
         
+        # === 歸還表單 (加入檢查機制) ===
         with st.form("return_form"):
             st.write("#### 歸還確認")
             default_idx = ALL_STAFF.index(last_user) if last_user in ALL_STAFF else 0
             returner = st.selectbox("歸還人", ALL_STAFF, index=default_idx)
             
+            st.markdown("---")
+            
+            # 🟡 新增：歸還檢查區塊 (色塊顯示)
+            st.warning("📦 **歸還前請檢查**")
+            # 這裡就是你要的色塊選擇
+            check_integrity = st.checkbox("✅ 我確認：探頭清潔、線材收好、機器功能正常")
+            
             st.write("")
-            submit_return = st.form_submit_button("↩️ 確認歸還 / 歸位", use_container_width=True)
+            submit_return = st.form_submit_button("↩️ 確認無誤 / 歸還", use_container_width=True)
             
             if submit_return:
-                tw_return_now = get_taiwan_time()
-                borrow_time_obj = datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
-                duration = round((tw_return_now.replace(tzinfo=None) - borrow_time_obj).total_seconds() / 60, 1)
-                
-                df.at[last_record_index, "狀態"] = "歸還"
-                df.at[last_record_index, "歸還人"] = returner
-                df.at[last_record_index, "歸還時間"] = tw_return_now.strftime("%Y-%m-%d %H:%M:%S")
-                df.at[last_record_index, "持續時間(分)"] = duration
-                
-                save_data(df)
-                st.success("歸還成功！")
-                st.rerun()
+                # 檢查是否有勾選
+                if not check_integrity:
+                    st.error("⚠️ 請務必勾選「確認物品完整」才能進行歸還！")
+                else:
+                    tw_return_now = get_taiwan_time()
+                    borrow_time_obj = datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
+                    duration = round((tw_return_now.replace(tzinfo=None) - borrow_time_obj).total_seconds() / 60, 1)
+                    
+                    df.at[last_record_index, "狀態"] = "歸還"
+                    df.at[last_record_index, "歸還人"] = returner
+                    df.at[last_record_index, "歸還時間"] = tw_return_now.strftime("%Y-%m-%d %H:%M:%S")
+                    df.at[last_record_index, "持續時間(分)"] = duration
+                    
+                    save_data(df)
+                    st.success("歸還成功！感謝您的配合 🙏")
+                    st.rerun()
 
     # ==========================================
     # 統計區
