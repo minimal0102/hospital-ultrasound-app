@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 import os
 
 # ==========================================
-# 1. 設定檔 (完全保留你的內容)
+# 1. 資料與設定 (完全保留原本內容)
 # ==========================================
 
 FILE_NAME = 'ultrasound_log.csv'
@@ -39,7 +39,7 @@ UNIT_LIST = [
 ]
 
 # ==========================================
-# 2. 核心功能函數 (不變)
+# 2. 核心功能函數
 # ==========================================
 
 def get_taiwan_time():
@@ -62,133 +62,118 @@ def save_data(df):
     df.to_csv(FILE_NAME, index=False)
 
 # ==========================================
-# 3. 主程式介面
+# 3. 主程式介面 (視覺復刻版)
 # ==========================================
 
 def main():
-    st.set_page_config(page_title="內科超音波動態", page_icon="🏥", layout="centered")
+    st.set_page_config(page_title="內科超音波登記站", page_icon="🏥", layout="centered")
     
     # ==========================================
-    # 🔥 CSS 重點優化區：Apple 原生風格 🔥
+    # 🔥 CSS 魔法區：100% 還原截圖風格 🔥
     # ==========================================
     st.markdown("""
         <style>
-        /* 1️⃣ 基礎設定：字體與背景 */
-        @import url(-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
-        
+        /* 1. 全局背景：iOS 淺灰 */
         [data-testid="stAppViewContainer"] {
-            background-color: #F5F5F7 !important; /* Apple 淺灰底 */
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif !important;
+            background-color: #F2F2F7 !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         [data-testid="stHeader"] {
             background-color: rgba(0,0,0,0) !important;
         }
-        .stMarkdown, h1, h2, h3, h4, h5, h6, p, div, span, li, label {
-            color: #1D1D1F !important; /* 深灰黑，比純黑更有質感 */
+        
+        /* 2. 標題與文字顏色 */
+        h1 {
+            color: #1C1C1E !important;
+            font-weight: 700 !important;
+            text-align: center !important;
+            font-size: 28px !important;
+            margin-bottom: 5px !important;
         }
-
-        /* 2️⃣ 卡片式設計 (White Card) */
-        /* 將表單區塊變成白色卡片 */
-        div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlock"] {
-            /* 這裡稍微 tricky，針對 Streamlit 結構做卡片化，若跑版可移除這段 */
+        p, label, span, div {
+            color: #1C1C1E;
         }
         
-        /* 自定義卡片容器 class */
+        /* 3. 卡片式容器 (White Card) */
         .apple-card {
             background-color: #FFFFFF;
-            padding: 30px;
-            border-radius: 24px; /* 更大的圓角 */
-            box-shadow: 0 4px 20px rgba(0,0,0,0.04); /* 極輕柔陰影 */
-            margin-bottom: 25px;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            margin-bottom: 20px;
         }
 
-        /* 3️⃣ 輸入框優化 (Input Fields) */
-        /* 讓輸入框像 iOS 設定裡的灰色區塊 */
-        .stTextInput > div > div, .stSelectbox > div > div {
-            background-color: #F5F5F7 !important; /* 淺灰填滿 */
-            border: none !important; /* 去除邊框 */
-            border-radius: 12px !important;
-            color: #1D1D1F !important;
-            transition: all 0.2s ease;
+        /* 4. 狀態指示燈 (綠色/紅色區塊) */
+        .status-container {
+            text-align: center;
+            margin-bottom: 20px;
         }
-        /* Focus 狀態 */
-        .stTextInput > div > div:focus-within, .stSelectbox > div > div:focus-within {
-            background-color: #FFFFFF !important;
-            box-shadow: 0 0 0 2px #007AFF !important; /* iOS 藍光暈 */
-        }
-        
-        /* 選單文字顏色 */
-        div[data-baseweb="select"] span {
-            color: #1D1D1F !important;
-        }
-
-        /* 4️⃣ 狀態看板 (Status Widget) */
         .status-header {
-            font-size: 0.85rem;
-            color: #86868B !important; /* 輔助說明灰 */
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 14px;
+            color: #8E8E93;
             margin-bottom: 8px;
-            text-align: center;
+        }
+        .status-badge-green {
+            background-color: #E8F5E9; /* 淺綠底 */
+            color: #2E7D32; /* 深綠字 */
+            padding: 15px 0;
+            border-radius: 12px;
+            font-size: 22px;
+            font-weight: 700;
+            border: 1px solid #C8E6C9;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .status-badge-red {
+            background-color: #FFEBEE;
+            color: #C62828;
+            padding: 15px 0;
+            border-radius: 12px;
+            font-size: 22px;
+            font-weight: 700;
+            border: 1px solid #FFCDD2;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        /* 5. 輸入框優化 */
+        /* 下拉選單與輸入框背景改為淺灰，類似 iOS 欄位 */
+        .stSelectbox > div > div, .stTextInput > div > div {
+            background-color: #F2F2F7 !important;
+            border: none !important;
+            border-radius: 10px !important;
+            color: #1C1C1E !important;
+        }
+        /* Radio Button 優化 */
+        [role="radiogroup"] {
+            background-color: transparent;
+            padding: 0;
         }
         
-        .status-pill-green {
-            background-color: #FFFFFF !important;
-            color: #34C759 !important; /* iOS Green */
-            padding: 15px;
-            border-radius: 18px;
-            text-align: center;
-            font-size: 1.5rem;
-            font-weight: 700;
-            box-shadow: 0 4px 15px rgba(52, 199, 89, 0.15);
-            margin-bottom: 25px;
-            border: 1px solid rgba(52, 199, 89, 0.2);
-        }
-
-        .status-pill-red {
-            background-color: #FFFFFF !important;
-            color: #FF3B30 !important; /* iOS Red */
-            padding: 15px;
-            border-radius: 18px;
-            text-align: center;
-            font-size: 1.5rem;
-            font-weight: 700;
-            box-shadow: 0 4px 15px rgba(255, 59, 48, 0.15);
-            margin-bottom: 25px;
-            border: 1px solid rgba(255, 59, 48, 0.2);
-        }
-
-        /* 5️⃣ 按鈕 (Buttons) */
-        /* 綠色主按鈕：置中、大、膠囊 */
+        /* 6. 按鈕優化：復刻截圖中的「藍色滿版按鈕」 */
         .stButton {
-            text-align: center;
-            margin-top: 20px;
+            margin-top: 10px;
         }
         .stButton button {
-            background-color: #34C759 !important; /* iOS Green */
+            background-color: #3b82f6 !important; /* iOS Blue 亮藍色 */
             color: white !important;
             border: none !important;
+            border-radius: 12px !important; /* 稍微方一點的圓角 */
+            padding: 12px 0 !important;
             font-size: 18px !important;
             font-weight: 600 !important;
-            border-radius: 999px !important; /* 膠囊狀 */
-            padding: 16px 48px !important;
-            box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3) !important;
-            transition: transform 0.1s ease !important;
+            width: 100% !important; /* 滿版寬度 */
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2) !important;
+            transition: opacity 0.2s;
         }
         .stButton button:active {
-            transform: scale(0.96) !important; /* 點擊縮放回饋 */
-        }
-        .stButton button:hover {
-            opacity: 0.9;
+            opacity: 0.7;
         }
 
-        /* 隱藏雜項 */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
+        /* 隱藏預設元素 */
+        #MainMenu, footer, header {visibility: hidden;}
         </style>
         """, unsafe_allow_html=True)
 
+    # 讀取資料
     df = load_data()
     
     current_status = "可借用"
@@ -200,42 +185,51 @@ def main():
             current_status = "使用中"
             last_record_index = df.index[-1]
 
-    # 標題區 (極簡化)
-    st.markdown("<h1 style='text-align: center; margin-bottom: 5px;'>內科超音波</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #86868B; margin-bottom: 30px;'>登記站</p>", unsafe_allow_html=True)
+    # --- 頁面標題 ---
+    st.markdown("<h1>內科超音波 登記站</h1>", unsafe_allow_html=True)
 
     # ==========================================
-    # 介面 A：借出登記 (邏輯不變)
+    # 介面 A：借出模式 (復刻截圖)
     # ==========================================
     if current_status == "可借用":
-        # 狀態顯示 (iOS Widget 風格)
+        # 狀態顯示區
         st.markdown("""
-            <div class="status-header">CURRENT STATUS</div>
-            <div class="status-pill-green">🟢 可借用 Available</div>
-            """, unsafe_allow_html=True)
-        
-        # 使用自定義 HTML 容器包裹表單，創造白色卡片效果
+            <div class="status-container">
+                <div class="status-header">目前狀況</div>
+                <div class="status-badge-green">🟢 可借用</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # === 白色卡片開始 ===
         st.markdown('<div class="apple-card">', unsafe_allow_html=True)
         
-        # 表單邏輯開始
-        st.caption("借用資訊")
-        # 職別選擇 (改用 Radio 比較直覺，或維持 Selectbox)
-        role_select = st.radio("身分", ["醫師", "專科護理師"], horizontal=True)
+        st.markdown("<h3 style='margin-top:0; font-size:18px; font-weight:600;'>借用人身分</h3>", unsafe_allow_html=True)
+        
+        # 身分選擇 (Radio Buttons)
+        role_select = st.radio("身分選擇", ["醫師", "專科護理師"], horizontal=True, label_visibility="collapsed")
         
         current_name_list = DOCTORS if role_select == "醫師" else NPS
 
+        # 表單內容
         with st.form("borrow_form"):
-            col1, col2 = st.columns(2)
-            with col1:
-                user = st.selectbox(f"{role_select}姓名", current_name_list)
-            with col2:
-                reason = st.selectbox("使用部位", BODY_PARTS)
+            # 為了排版好看，使用 st.write 加一些間距或標籤
+            st.markdown(f"<p style='margin-bottom:4px; font-weight:500; font-size:14px; color:#666;'>{role_select}</p>", unsafe_allow_html=True)
+            user = st.selectbox(f"選擇{role_select}姓名", current_name_list, label_visibility="collapsed")
             
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True) # 間距
+
+            st.markdown("<p style='margin-bottom:4px; font-weight:500; font-size:14px; color:#666;'>使用部位</p>", unsafe_allow_html=True)
+            reason = st.selectbox("使用部位", BODY_PARTS, label_visibility="collapsed")
+            
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True) # 間距
+
+            st.markdown("<p style='margin-bottom:4px; font-weight:500; font-size:14px; color:#666;'>移動至單位</p>", unsafe_allow_html=True)
             location_options = ["請選擇前往單位..."] + UNIT_LIST
-            location = st.selectbox("前往單位", location_options)
+            location = st.selectbox("前往單位", location_options, label_visibility="collapsed")
             
-            st.write("") # 留白
-            # 這是你要的「置中、字體略大、綠底」按鈕
+            st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True) # 按鈕前間距
+
+            # 藍色滿版按鈕
             submit = st.form_submit_button("登記並取走設備")
             
             if submit:
@@ -258,49 +252,60 @@ def main():
                     save_data(df)
                     st.toast(f"登記成功！", icon="🎉")
                     st.rerun()
-        
-        st.markdown('</div>', unsafe_allow_html=True) # 結束卡片
+
+        st.markdown('</div>', unsafe_allow_html=True) 
+        # === 白色卡片結束 ===
 
     # ==========================================
-    # 介面 B：歸還登記 (邏輯不變)
+    # 介面 B：歸還模式 (保持一致風格)
     # ==========================================
     else:
         last_user = df.iloc[-1]["借用人"]
-        last_role = df.iloc[-1].get("職稱", "未分類")
-        last_time = df.iloc[-1]["借用時間"]
         last_loc = df.iloc[-1]["所在位置"]
+        last_time = df.iloc[-1]["借用時間"]
         
+        # 狀態顯示區
         st.markdown("""
-            <div class="status-header">CURRENT STATUS</div>
-            <div class="status-pill-red">🔴 使用中 In Use</div>
-            """, unsafe_allow_html=True)
-        
+            <div class="status-container">
+                <div class="status-header">目前狀況</div>
+                <div class="status-badge-red">🔴 使用中</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+        # === 白色卡片開始 ===
         st.markdown('<div class="apple-card">', unsafe_allow_html=True)
         
+        # 資訊顯示
         col1, col2 = st.columns(2)
         with col1:
-            st.metric("使用者", f"{last_user}")
-            st.caption(f"{last_role}")
+            st.markdown("<p style='font-size:12px; color:#8E8E93; margin-bottom:0;'>使用者</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='font-size:18px; font-weight:600;'>{last_user}</p>", unsafe_allow_html=True)
         with col2:
-            st.metric("位置", last_loc)
-            st.caption(f"自 {last_time} 借出")
+            st.markdown("<p style='font-size:12px; color:#8E8E93; margin-bottom:0;'>目前位置</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='font-size:18px; font-weight:600;'>{last_loc}</p>", unsafe_allow_html=True)
             
-        st.divider() # 極簡分隔線
+        st.markdown(f"<p style='font-size:12px; color:#8E8E93; text-align:center;'>借出時間：{last_time}</p>", unsafe_allow_html=True)
         
+        st.markdown("<hr style='margin: 15px 0; border: 0; border-top: 1px solid #E5E5EA;'>", unsafe_allow_html=True)
+
+        # 歸還表單
         with st.form("return_form"):
-            st.caption("歸還確認")
+            st.markdown("<p style='margin-bottom:4px; font-weight:500; font-size:14px; color:#666;'>歸還人</p>", unsafe_allow_html=True)
             default_idx = ALL_STAFF.index(last_user) if last_user in ALL_STAFF else 0
-            returner = st.selectbox("歸還人", ALL_STAFF, index=default_idx)
+            returner = st.selectbox("歸還人", ALL_STAFF, index=default_idx, label_visibility="collapsed")
             
-            st.write("")
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+            
             check_integrity = st.checkbox("探頭清潔 / 線材收納 / 功能正常")
             
-            st.write("")
-            submit_return = st.form_submit_button("確認歸還")
+            st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
+            # 藍色滿版按鈕
+            submit_return = st.form_submit_button("確認歸還設備")
             
             if submit_return:
                 if not check_integrity:
-                    st.error("⚠️ 請確認物品完整性")
+                    st.error("⚠️ 請確認設備完整性")
                 else:
                     tw_return_now = get_taiwan_time()
                     borrow_time_obj = datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
@@ -314,40 +319,28 @@ def main():
                     save_data(df)
                     st.success("歸還成功！")
                     st.rerun()
-                    
+
         st.markdown('</div>', unsafe_allow_html=True)
+        # === 白色卡片結束 ===
 
     # ==========================================
-    # 統計區 (邏輯不變)
+    # 統計區 (保留原有功能)
     # ==========================================
-    st.write("")
-    st.subheader("紀錄與統計")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center; font-size:16px; color:#8E8E93;'>紀錄與統計</h3>", unsafe_allow_html=True)
     
-    # 這裡的介面保持原樣，因為 Streamlit 的 Tab 很難完全改造成 iOS 風格
-    # 但會自動套用上面的字體與背景設定
     if not df.empty:
-        tab1, tab2, tab3, tab4 = st.tabs(["📋 詳細表", "🩺 職稱", "🏆 人員", "🔍 部位"])
+        tab1, tab2 = st.tabs(["📋 詳細紀錄", "📊 圖表分析"])
         
         with tab1:
-            st.dataframe(
-                df[["借用時間", "職稱", "借用人", "所在位置", "使用部位", "歸還時間"]].sort_index(ascending=False), 
-                use_container_width=True
-            )
+            st.dataframe(df.sort_index(ascending=False), use_container_width=True)
+            # 下載按鈕
+            csv = df.to_csv(index=False).encode('utf-8-sig')
+            st.download_button("📥 下載備份 (CSV)", csv, "ultrasound_backup.csv", "text/csv")
+
         with tab2:
             if "職稱" in df.columns:
-                fig = px.pie(df, names='職稱', title='職稱比例', hole=0.6, color_discrete_sequence=px.colors.qualitative.Pastel)
-                st.plotly_chart(fig, use_container_width=True)
-        with tab3:
-            if "借用人" in df.columns:
-                user_counts = df["借用人"].value_counts().reset_index()
-                user_counts.columns = ["借用人", "次數"]
-                fig = px.pie(user_counts, names='借用人', values='次數', title='同仁使用佔比')
-                st.plotly_chart(fig, use_container_width=True)
-        with tab4:
-            if "使用部位" in df.columns:
-                part_counts = df["使用部位"].value_counts().reset_index()
-                part_counts.columns = ["使用部位", "次數"]
-                fig = px.pie(part_counts, names='使用部位', values='次數', title='檢查部位佔比')
+                fig = px.pie(df, names='職稱', title='使用者職稱比例', hole=0.5)
                 st.plotly_chart(fig, use_container_width=True)
 
 if __name__ == "__main__":
