@@ -18,10 +18,10 @@ BODY_PARTS = ["胸腔 (Thoracic)", "心臟 (Cardiac)", "腹部 (Abdominal)", "�
 def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
-def load_data():
-    # 這裡會清空舊有的 CSV 資料，重新建立空白檔
+def reset_and_load_data():
+    """刪除舊檔案並建立全新的資料結構"""
     if os.path.exists(FILE_NAME):
-        os.remove(FILE_NAME) 
+        os.remove(FILE_NAME)
     df = pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
     df.to_csv(FILE_NAME, index=False, encoding='utf-8-sig')
     return df
@@ -34,16 +34,16 @@ def save_data(df):
 # ==========================================
 def main():
     st.set_page_config(page_title="內科超音波登記站", page_icon="🏥", layout="centered")
-    
-    # 初始化資料
-    if 'first_run' not in st.session_state:
-        df = load_data()
-        st.session_state.first_run = True
+
+    # 確保資料清空：如果是第一次執行，重置資料
+    if 'initialized' not in st.session_state:
+        df = reset_and_load_data()
+        st.session_state.initialized = True
     else:
-        if not os.path.exists(FILE_NAME):
-            df = load_data()
-        else:
+        if os.path.exists(FILE_NAME):
             df = pd.read_csv(FILE_NAME, encoding='utf-8-sig')
+        else:
+            df = reset_and_load_data()
 
     current_status = "可借用"
     last_idx = None
@@ -51,10 +51,9 @@ def main():
         current_status = "使用中"
         last_idx = df.index[-1]
 
-    # --- 強力 CSS 修正區塊 ---
+    # --- 強力 CSS 修正：解決按鈕縮小問題 ---
     st.markdown("""
         <style>
-        /* 全域字體 */
         html, body, [class*="css"] {
             font-family: "Microsoft JhengHei", sans-serif !important;
         }
@@ -70,69 +69,68 @@ def main():
         .bg-red { background-color: #F87171 !important; }
         .value-text { font-size: 45px; font-weight: 900; color: #000; }
 
-        /* --- 修正截圖中按鈕縮小的問題 --- */
-        /* 強制按鈕容器寬度 */
-        div.stButton, div[data-testid="stFormSubmitButton"] {
+        /* 核心按鈕修正：強制取代白色方塊 */
+        div[data-testid="stFormSubmitButton"] {
             width: 100% !important;
-            display: block !important;
-        }
-
-        /* 強制按鈕主體樣式：長方形、滿版 */
-        div[data-testid="stFormSubmitButton"] > button {
-            width: 100% !important;
-            min-height: 80px !important; /* 增加高度確保文字不擁擠 */
-            border-radius: 12px !important;
-            border: none !important;
-            font-size: 26px !important;
-            font-weight: 900 !important;
-            color: #000000 !important; /* 黑色字體 */
             display: flex !important;
             justify-content: center !important;
-            align-items: center !important;
-            box-shadow: 0 6px 12px rgba(0,0,0,0.2) !important;
-            background-color: #EEEEEE !important; /* 預設底色 */
         }
 
-        /* 登記按鈕顏色控制 (使用 ID 或 class 層級) */
+        div[data-testid="stFormSubmitButton"] > button {
+            width: 100% !important;
+            min-height: 70px !important;
+            border-radius: 15px !important;
+            font-size: 24px !important;
+            font-weight: 900 !important;
+            color: #000000 !important;
+            border: none !important;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.15) !important;
+            transition: all 0.2s ease;
+        }
+
+        /* 根據父層 class 切換顏色 */
         .borrow-btn div[data-testid="stFormSubmitButton"] > button {
             background-color: #60A5FA !important; /* 亮藍色 */
         }
-
-        /* 歸還按鈕顏色控制 */
         .return-btn div[data-testid="stFormSubmitButton"] > button {
             background-color: #F87171 !important; /* 亮紅色 */
         }
-
-        /* 移除按鈕點擊後的預設邊框 */
-        button:focus { outline: none !important; border: none !important; }
+        
+        button:active { transform: scale(0.98); }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="main-title">🏥 內科超音波登記站</div>', unsafe_allow_html=True)
 
-    # ==========================================
-    # 互動介面邏輯
-    # ==========================================
+    # 1. 登記模式
     if current_status == "可借用":
         st.success("### ✅ 設備在位 (請登記使用)")
         role = st.radio("登記身分", ["醫師", "專科護理師"], horizontal=True)
         
+        # 使用自定義容器包裹 Form
         st.markdown('<div class="borrow-btn">', unsafe_allow_html=True)
         with st.form("borrow_form"):
             user = st.selectbox("使用人姓名", DOCTORS if role == "醫師" else NPS)
             loc = st.selectbox("前往單位", ["請選擇單位..."] + UNIT_LIST)
             part = st.selectbox("使用部位", BODY_PARTS)
             
-            if st.form_submit_button("🚀 登記推走設備"):
+            # 按鈕
+            submit = st.form_submit_button("🚀 登記設備")
+            if submit:
                 if loc == "請選擇單位...":
                     st.error("⚠️ 請務必選擇目的地單位")
                 else:
-                    new_rec = {"狀態": "借出", "職稱": role, "使用人": user, "使用時間": get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S"), "使用部位": part, "目前位置": loc, "歸還人": "", "歸還時間": "", "持續時間(分)": 0}
+                    new_rec = {
+                        "狀態": "借出", "職稱": role, "使用人": user, 
+                        "使用時間": get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S"), 
+                        "使用部位": part, "目前位置": loc, "歸還人": "", "歸還時間": "", "持續時間(分)": 0
+                    }
                     df = pd.concat([df, pd.DataFrame([new_rec])], ignore_index=True)
                     save_data(df)
                     st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
+    # 2. 歸還模式
     else:
         last_row = df.iloc[-1]
         st.error("### ⚠️ 設備目前使用中")
@@ -153,7 +151,26 @@ def main():
         with st.form("return_form"):
             st.info(f"🕒 借出時間：{last_row['使用時間']}")
             check = st.checkbox("✅ 探頭清潔 / 線材收納 / 功能正常", value=False)
+            
+            # 按鈕
             if st.form_submit_button("📦 歸還設備"):
                 if not check:
-                    st.warning("⚠️ 請先勾選確認清消項目")
+                    st.warning("⚠️ 請先勾選確認項目")
                 else:
+                    now = get_taiwan_time()
+                    start_t = datetime.strptime(last_row['使用時間'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
+                    dur = round((now - start_t).total_seconds() / 60, 1)
+                    df.at[last_idx, "狀態"] = "歸還"
+                    df.at[last_idx, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
+                    df.at[last_idx, "持續時間(分)"] = dur
+                    save_data(df)
+                    st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # 3. 顯示紀錄
+    if not df.empty:
+        with st.expander("📊 查看紀錄"):
+            st.dataframe(df.sort_index(ascending=False), use_container_width=True)
+
+if __name__ == "__main__":
+    main()
