@@ -18,12 +18,14 @@ BODY_PARTS = ["胸腔 (Thoracic)", "心臟 (Cardiac)", "腹部 (Abdominal)", "�
 def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
-def reset_and_load_data():
-    if os.path.exists(FILE_NAME):
-        os.remove(FILE_NAME)
-    df = pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
-    df.to_csv(FILE_NAME, index=False, encoding='utf-8-sig')
-    return df
+def load_data_fresh():
+    """強制從硬碟讀取最新資料，避免多裝置快取錯誤"""
+    if not os.path.exists(FILE_NAME):
+        df = pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
+        df.to_csv(FILE_NAME, index=False, encoding='utf-8-sig')
+        return df
+    # 讀取時不使用快取
+    return pd.read_csv(FILE_NAME, encoding='utf-8-sig')
 
 def save_data(df):
     df.to_csv(FILE_NAME, index=False, encoding='utf-8-sig')
@@ -34,84 +36,72 @@ def save_data(df):
 def main():
     st.set_page_config(page_title="內科超音波登記站", page_icon="🏥", layout="centered")
 
-    if 'initialized' not in st.session_state:
-        df = reset_and_load_data()
-        st.session_state.initialized = True
-    else:
-        df = pd.read_csv(FILE_NAME, encoding='utf-8-sig') if os.path.exists(FILE_NAME) else reset_and_load_data()
-
+    # 【重要】每次重整畫面都重新讀取檔案，解決多人連線 Bug
+    df = load_data_fresh()
+    
+    # 判斷狀態邏輯優化：確保精確比對字串並去除空白
     current_status = "可借用"
     last_idx = None
-    if not df.empty and df.iloc[-1]["狀態"] == "借出":
-        current_status = "使用中"
-        last_idx = df.index[-1]
+    
+    if not df.empty:
+        last_record = df.iloc[-1]
+        # 使用 strip() 避免隱形空白字元造成判斷錯誤
+        if str(last_record["狀態"]).strip() == "借出":
+            current_status = "使用中"
+            last_idx = df.index[-1]
 
-    # --- 強力 CSS 修正：選單向下開啟、黑框線、按鈕與儀表板隔離 ---
+    # --- CSS 樣式區 (包含下拉向下、黑框、長方形按鈕) ---
     st.markdown("""
         <style>
-        /* 1. 全域與選單框線：強制黑色框線 */
         html, body, [class*="css"] { font-family: "Microsoft JhengHei", sans-serif !important; }
         [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
 
-        /* 修改下拉選單外框為黑色 */
+        /* 下拉選單黑框線 */
         div[data-baseweb="select"] > div {
             border: 1.5px solid #000000 !important;
             border-radius: 8px !important;
         }
 
-        /* 2. 強制下拉選單向下開啟 (避免跑到標題上面) */
+        /* 強制下拉選單向下開啟 */
         div[data-baseweb="popover"] {
             margin-top: 4px !important;
             top: auto !important;
         }
 
-        /* 3. 阻擋手機鍵盤彈出 (針對 selectbox) */
+        /* 阻擋手機鍵盤 */
         div[data-baseweb="select"] input {
             inputmode: none !important;
             caret-color: transparent !important;
         }
 
-        /* 4. 上方資訊儀表板 (保留樣式) */
+        /* 資訊儀表板 */
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0px; }
         .info-card {
-            border-radius: 20px;
-            padding: 30px 10px;
-            text-align: center;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            color: #000 !important;
+            border-radius: 20px; padding: 30px 10px; text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1); color: #000 !important;
         }
         .status-blue { background-color: #60A5FA !important; }
         .status-red { background-color: #F87171 !important; }
         .card-label { font-size: 18px; font-weight: 900; opacity: 0.8; }
         .card-value { font-size: 42px; font-weight: 900; display: block; margin-top: 5px; }
 
-        /* 5. 按鈕專屬樣式 (長方形、滿版、亮藍/紅) */
+        /* 亮藍/亮紅 長方形按鈕 */
         .borrow-section div[data-testid="stFormSubmitButton"] > button {
-            width: 100% !important;
-            height: 70px !important;
-            background-color: #60A5FA !important;
-            color: #000000 !important;
-            border-radius: 12px !important;
-            font-size: 24px !important;
-            font-weight: 900 !important;
-            border: none !important;
+            width: 100% !important; height: 75px !important;
+            background-color: #60A5FA !important; color: #000 !important;
+            border-radius: 12px !important; font-size: 24px !important;
+            font-weight: 900 !important; border: none !important;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
         }
         .return-section div[data-testid="stFormSubmitButton"] > button {
-            width: 100% !important;
-            height: 70px !important;
-            background-color: #F87171 !important;
-            color: #000000 !important;
-            border-radius: 12px !important;
-            font-size: 24px !important;
-            font-weight: 900 !important;
-            border: none !important;
+            width: 100% !important; height: 75px !important;
+            background-color: #F87171 !important; color: #000 !important;
+            border-radius: 12px !important; font-size: 24px !important;
+            font-weight: 900 !important; border: none !important;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
         }
         div[data-testid="stFormSubmitButton"] button p {
-            color: #000000 !important;
-            font-size: 24px !important;
-            font-weight: 900 !important;
+            color: #000 !important; font-size: 24px !important; font-weight: 900 !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -132,8 +122,10 @@ def main():
                     st.error("⚠️ 請務必選擇目的地單位")
                 else:
                     new_rec = {"狀態": "借出", "職稱": role, "使用人": user, "使用時間": get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S"), "使用部位": part, "目前位置": loc, "歸還人": "", "歸還時間": "", "持續時間(分)": 0}
-                    df = pd.concat([df, pd.DataFrame([new_rec])], ignore_index=True)
-                    save_data(df)
+                    # 再次重新讀取以確保寫入時是基於最新版本 (解決併發寫入問題)
+                    df_latest = load_data_fresh()
+                    df_latest = pd.concat([df_latest, pd.DataFrame([new_rec])], ignore_index=True)
+                    save_data(df_latest)
                     st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -141,6 +133,7 @@ def main():
         last_row = df.iloc[-1]
         st.error("### ⚠️ 設備目前使用中")
         
+        # 資訊儀表板
         st.markdown(f"""
             <div class="dashboard-grid">
                 <div class="info-card status-blue">
@@ -160,15 +153,19 @@ def main():
             check = st.checkbox("探頭清潔 / 線材收納 / 功能正常")
             if st.form_submit_button("📦 歸還設備"):
                 if not check:
-                    st.warning("⚠️ 請先勾選確認清消項目")
+                    st.warning("⚠️ 請先勾選確認項目")
                 else:
                     now = get_taiwan_time()
                     start_t = datetime.strptime(last_row['使用時間'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
                     dur = round((now - start_t).total_seconds() / 60, 1)
-                    df.at[last_idx, "狀態"] = "歸還"
-                    df.at[last_idx, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
-                    df.at[last_idx, "持續時間(分)"] = dur
-                    save_data(df)
+                    
+                    # 歸還時也讀取最新資料確保寫回正確行數
+                    df_latest = load_data_fresh()
+                    last_idx_fresh = df_latest.index[-1]
+                    df_latest.at[last_idx_fresh, "狀態"] = "歸還"
+                    df_latest.at[last_idx_fresh, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
+                    df_latest.at[last_idx_fresh, "持續時間(分)"] = dur
+                    save_data(df_latest)
                     st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
