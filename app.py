@@ -118,7 +118,7 @@ def main():
             user = st.selectbox("借用人", DOCTORS if role == "醫師" else NPS)
             loc = st.selectbox("前往單位", ["請選擇前往單位..."] + UNIT_LIST)
             part = st.selectbox("使用部位", BODY_PARTS)
-            if st.form_submit_button("🚀 登記並推走設備"):
+            if st.form_submit_button("登記推走設備"):
                 if loc == "請選擇前往單位...":
                     st.error("⚠️ 請選擇單位")
                 else:
@@ -153,7 +153,7 @@ def main():
         with st.form("return_form"):
             st.info(f"借出時間：{last_row['借用時間']}")
             check = st.checkbox("探頭清潔 / 線材收納 / 功能正常", value=False)
-            if st.form_submit_button("📦 確認歸還設備"):
+            if st.form_submit_button("確認歸還設備"):
                 if not check:
                     st.warning("⚠️ 請勾選確認檢查")
                 else:
