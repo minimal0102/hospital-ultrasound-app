@@ -8,7 +8,7 @@ import os
 # ==========================================
 FILE_NAME = 'ultrasound_log.csv'
 DOCTORS = ["朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", "石振昌", "王志弘", "鄭穆良", "蔡均埏", "楊振杰", "趙令瑞", "許智凱", "林純全", "孫宏傑", "繆偉傑", "陳翌真", "卓俊宏", "林斈府", "葉俊麟", "莊永鑣", "李坤峰", "何承恩", "沈治華", "PGY醫師"]
-NPS = ["侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛期"]
+NPS = ["侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛琪"]
 ALL_STAFF = DOCTORS + NPS
 UNIT_LIST = ["3A", "3B", "5A", "5B", "6A", "6B", "7A", "7B", "RCC", "6D", "6F", "檢查室"]
 BODY_PARTS = ["胸腔 (Thoracic)", "心臟 (Cardiac)", "腹部 (Abdominal)", "膀胱 (Bladder)", "下肢 (Lower Limb)", "靜脈留置 (IV insertion)"]
@@ -43,14 +43,12 @@ def main():
         current_status = "使用中"
         last_idx = df.index[-1]
 
-    # --- 高對比、寬鬆、滿版 CSS 注入 ---
+    # --- 高對比、滿版、繁體中文 CSS ---
     st.markdown("""
         <style>
-        /* 全域字體優化 */
         html, body, [class*="css"] {
             font-family: "Microsoft JhengHei", "PingFang TC", sans-serif !important;
         }
-
         [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
         header, [data-testid="stHeader"] { visibility: hidden; height: 0px; }
         
@@ -60,7 +58,7 @@ def main():
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 25px 0px; }
         .info-card {
             border-radius: 25px;
-            padding: 40px 10px; /* 增加內距，確保不擁擠 */
+            padding: 40px 10px;
             text-align: center;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
             display: flex;
@@ -73,32 +71,26 @@ def main():
         .label-text { font-size: 18px; color: #000; font-weight: 900; margin-bottom: 15px; opacity: 0.7; }
         .value-text { font-size: 45px; font-weight: 900; color: #000; letter-spacing: 2px; }
 
-        /* 強制按鈕變身滿版色塊：亮色背景、純黑極粗、尺寸調整 */
+        /* 強制按鈕變身滿版色塊：純黑字、無 icon、尺寸置中 */
         div[data-testid="stFormSubmitButton"] { text-align: center; width: 100%; }
         
         div[data-testid="stFormSubmitButton"] > button {
             width: 100% !important;
             border-radius: 20px !important;
-            padding: 30px 0 !important; /* 加高按鈕，顯得更寬裕 */
-            font-size: 26px !important;  /* 文字尺寸調整 */
+            padding: 30px 0 !important;
+            font-size: 26px !important;
             font-weight: 900 !important;
-            color: #000000 !important;   /* 純黑字體 */
+            color: #000000 !important;
             border: none !important;
             box-shadow: 0 8px 20px rgba(0,0,0,0.2) !important;
             margin-top: 20px;
         }
 
-        /* 登記按鈕亮藍控制 */
-        .borrow-btn div[data-testid="stFormSubmitButton"] > button {
-            background-color: #60A5FA !important;
-        }
-
-        /* 歸還按鈕亮紅控制 */
-        .return-btn div[data-testid="stFormSubmitButton"] > button {
-            background-color: #F87171 !important;
-        }
+        /* 按鈕底色控制 */
+        .borrow-btn div[data-testid="stFormSubmitButton"] > button { background-color: #60A5FA !important; }
+        .return-btn div[data-testid="stFormSubmitButton"] > button { background-color: #F87171 !important; }
         
-        /* 橫排點選樣式優化 */
+        /* 橫排點選身分樣式 */
         div[role="radiogroup"] { 
             display: flex !important; flex-direction: row !important; gap: 40px !important; 
             margin-bottom: 20px;
@@ -113,20 +105,20 @@ def main():
     # 登記模式 (可使用)
     # ------------------------------------------
     if current_status == "可借用":
-        st.success("### ✅ 設備在位 (請登記使用)")
+        st.success("### ✅ 設備在位中 (請登記使用)")
         
         role = st.radio("登記身分", ["醫師", "專科護理師"], horizontal=True)
         
         st.markdown('<div class="borrow-btn">', unsafe_allow_html=True)
         with st.form("borrow_form"):
             user = st.selectbox("使用人", DOCTORS if role == "醫師" else NPS)
-            loc = st.selectbox("前往單位", ["請選擇單位..."] + UNIT_LIST)
+            loc = st.selectbox("前往單位", ["請選擇前往單位..."] + UNIT_LIST)
             part = st.selectbox("使用部位", BODY_PARTS)
             
             st.write("")
-            # 強制變為置中亮藍滿版色塊
-            if st.form_submit_button("🚀 登入推走設備"):
-                if loc == "請選擇單位...":
+            # 亮藍色滿版按鈕
+            if st.form_submit_button("登入推走設備"):
+                if loc == "請選擇前往單位...":
                     st.error("⚠️ 請選擇目的地單位")
                 else:
                     new_rec = {"狀態": "借出", "職稱": role, "使用人": user, "使用時間": get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S"), "使用部位": part, "目前位置": loc, "歸還人": "", "歸還時間": "", "持續時間(分)": 0}
@@ -142,7 +134,7 @@ def main():
         last_row = df.iloc[-1]
         st.error("### ⚠️ 設備目前使用中")
 
-        # 置中資訊儀表板
+        # 滿版資訊儀表板
         st.markdown(f"""
         <div class="dashboard-grid">
             <div class="info-card bg-blue">
@@ -159,14 +151,15 @@ def main():
         st.markdown('<div class="return-btn">', unsafe_allow_html=True)
         with st.form("return_form"):
             st.info(f"🕒 借出時間：{last_row['使用時間']}")
+            # 自動選擇目前的使用人作為歸還確認人
             returner = st.selectbox("歸還確認人", ALL_STAFF, index=ALL_STAFF.index(last_row['使用人']) if last_row['使用人'] in ALL_STAFF else 0)
-            check = st.checkbox("✅ 探頭清潔 / 線材收納 / 功能正常", value=False)
+            check = st.checkbox("探頭清潔 / 線材收納 / 功能正常", value=False)
             
             st.write("")
-            # 強制變為置中亮紅滿版色塊
-            if st.form_submit_button("📦 歸還設備"):
+            # 亮紅色滿版按鈕
+            if st.form_submit_button("歸還設備"):
                 if not check:
-                    st.warning("⚠️ 請勾選確認清消")
+                    st.warning("⚠️ 請先完成清潔檢查")
                 else:
                     now = get_taiwan_time()
                     start_t = datetime.strptime(last_row['使用時間'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
@@ -179,6 +172,13 @@ def main():
                     st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
+    # ------------------------------------------
+    # 歷史紀錄 (修正括號語法錯誤)
+    # ------------------------------------------
     if not df.empty:
         with st.expander("📊 查看紀錄"):
-            st.dataframe(df.sort_index(ascending=False
+            # 這裡修正了括號缺失的錯誤
+            st.dataframe(df.sort_index(ascending=False), use_container_width=True)
+
+if __name__ == "__main__":
+    main()
