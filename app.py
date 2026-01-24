@@ -57,7 +57,7 @@ def main():
         .dashboard-label { font-size: 13px; color: #6B7280; font-weight: 600; }
         .dashboard-value { font-size: 24px; font-weight: 800; color: #000; }
 
-        /* 按鈕基礎強制設定：滿版、粗體黑字、文字置中 */
+        /* 按鈕基礎強制設定：滿版、粗體黑字 */
         div.stButton > button {
             width: 100% !important;
             display: block !important;
@@ -66,7 +66,6 @@ def main():
             font-size: 24px !important;
             font-weight: 900 !important;
             color: #000000 !important;
-            text-align: center !important;
             border: 2px solid rgba(0,0,0,0.1) !important;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
         }
