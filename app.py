@@ -173,25 +173,28 @@ def main():
     # 情境 A：借出模式 (藍色系)
     # ==========================================
     if current_status == "可借用":
-        # === 注入 藍底黑字 按鈕 CSS ===
-        # 注意：這裡就是你原本出錯的地方，我已經幫你把下面這幾行都縮排好了
+        # === 🔧 修正：強制覆蓋按鈕樣式 (藍底黑字) ===
         st.markdown("""
         <style>
-        .stButton button {
+        /* 使用 div.stButton > button 提高權重，確保樣式生效 */
+        div.stButton > button {
             background-color: #60A5FA !important; /* 亮藍色 */
             color: #000000 !important; /* 純黑字 */
-            border: 2px solid rgba(0,0,0,0.1) !important;
+            border: none !important;
             border-radius: 12px !important;
-            padding: 15px 0 !important;
+            padding: 16px 20px !important;
             font-size: 22px !important;
             font-weight: 900 !important; /* 極粗 */
-            width: 100% !important;
-            box-shadow: 0 4px 0 rgba(0,0,0,0.1) !important;
-            transition: all 0.1s;
+            width: 100% !important; /* 滿版置中 */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+            transition: all 0.2s;
         }
-        .stButton button:active {
-            transform: translateY(2px);
-            box-shadow: none !important;
+        div.stButton > button:hover {
+            background-color: #3B82F6 !important; /* 滑鼠懸停稍微變深 */
+            color: #000000 !important;
+        }
+        div.stButton > button:active {
+            transform: scale(0.98);
         }
         </style>
         """, unsafe_allow_html=True)
@@ -229,7 +232,7 @@ def main():
             
             st.markdown("<div style='height:25px'></div>", unsafe_allow_html=True)
             
-            # 按鈕 (CSS 已設定為 藍底黑字)
+            # 按鈕
             submit = st.form_submit_button("🚀 登記推走設備")
             
             if submit:
@@ -262,24 +265,28 @@ def main():
         last_loc = df.iloc[-1]["所在位置"]
         last_time = df.iloc[-1]["借用時間"]
         
-        # === 注入 紅底黑字 按鈕 CSS ===
+        # === 🔧 修正：強制覆蓋按鈕樣式 (紅底黑字) ===
         st.markdown("""
         <style>
-        .stButton button {
+        /* 使用 div.stButton > button 提高權重，確保樣式生效 */
+        div.stButton > button {
             background-color: #F87171 !important; /* 亮紅色 */
             color: #000000 !important; /* 純黑字 */
-            border: 2px solid rgba(0,0,0,0.1) !important;
+            border: none !important;
             border-radius: 12px !important;
-            padding: 15px 0 !important;
+            padding: 16px 20px !important;
             font-size: 22px !important;
-            font-weight: 900 !important;
-            width: 100% !important;
-            box-shadow: 0 4px 0 rgba(0,0,0,0.1) !important;
-            transition: all 0.1s;
+            font-weight: 900 !important; /* 極粗 */
+            width: 100% !important; /* 滿版置中 */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+            transition: all 0.2s;
         }
-        .stButton button:active {
-            transform: translateY(2px);
-            box-shadow: none !important;
+        div.stButton > button:hover {
+            background-color: #EF4444 !important; /* 滑鼠懸停稍微變深 */
+            color: #000000 !important;
+        }
+        div.stButton > button:active {
+            transform: scale(0.98);
         }
         </style>
         """, unsafe_allow_html=True)
@@ -324,7 +331,7 @@ def main():
             
             st.markdown("<div style='height:25px'></div>", unsafe_allow_html=True)
 
-            # 按鈕 (CSS 已設定為 紅底黑字)
+            # 按鈕
             submit_return = st.form_submit_button("📦 確認歸還設備")
             
             if submit_return:
