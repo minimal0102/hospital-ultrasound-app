@@ -21,7 +21,7 @@ def get_taiwan_time():
 
 def load_data():
     if not os.path.exists(FILE_NAME):
-        df = pd.DataFrame(columns=["狀態", "職稱", "借用人", "借用時間", "使用部位", "所在位置", "歸還人", "歸還時間", "持續時間(分)"])
+        df = pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
         df.to_csv(FILE_NAME, index=False, encoding='utf-8-sig')
         return df
     return pd.read_csv(FILE_NAME, encoding='utf-8-sig')
@@ -43,10 +43,10 @@ def main():
         current_status = "使用中"
         last_idx = df.index[-1]
 
-    # --- 高對比 CSS 注入 ---
+    # --- 高對比 滿版視覺 CSS ---
     st.markdown("""
         <style>
-        /* 全域字體 */
+        /* 全域繁體中文優化 */
         html, body, [class*="css"] {
             font-family: "Microsoft JhengHei", "PingFang TC", sans-serif !important;
         }
@@ -54,25 +54,15 @@ def main():
         [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
         header, [data-testid="stHeader"] { visibility: hidden; height: 0px; }
         
-        .main-title { text-align: center; font-weight: 900; font-size: 2.2rem; color: #000; margin-bottom: 25px; }
+        .main-title { text-align: center; font-weight: 900; font-size: 2.5rem; color: #000; margin-bottom: 25px; }
 
-        /* 修正：點選按鈕橫向排列與尺寸 */
-        div[data-testid="stMarkdownContainer"] > p { font-size: 18px !important; font-weight: 900 !important; }
-        div[role="radiogroup"] { 
-            display: flex !important; 
-            flex-direction: row !important; 
-            gap: 30px !important; 
-            padding: 10px 0px !important;
-        }
-        div[role="radiogroup"] label { font-size: 20px !important; font-weight: 700 !important; }
-
-        /* 儀表板方塊：背景色滿版 */
+        /* 儀表板：色塊背景滿版修復 */
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0px; }
         .info-card {
-            border-radius: 20px;
-            padding: 25px 5px;
+            border-radius: 24px;
+            padding: 30px 5px;
             text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -80,51 +70,55 @@ def main():
         .bg-blue { background-color: #60A5FA !important; }
         .bg-red { background-color: #F87171 !important; }
         
-        .label-text { font-size: 16px; color: #000; font-weight: 900; margin-bottom: 10px; opacity: 0.8; }
-        .value-text { font-size: 42px; font-weight: 900; color: #000; }
+        .label-text { font-size: 18px; color: #000; font-weight: 900; margin-bottom: 12px; opacity: 0.8; }
+        .value-text { font-size: 42px; font-weight: 900; color: #000; letter-spacing: 1px; }
 
-        /* 按鈕樣式：亮色背景、純黑極粗 20px */
+        /* 按鈕優化：純黑、20px、極粗、亮底 */
         div[data-testid="stFormSubmitButton"] > button {
             width: 100% !important;
-            border-radius: 16px !important;
+            border-radius: 18px !important;
             padding: 24px 0 !important;
-            font-size: 20px !important;
+            font-size: 22px !important;
             font-weight: 900 !important;
-            color: #000 !important;
+            color: #000 !important; /* 強制純黑 */
             border: none !important;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.12) !important;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.15) !important;
         }
 
         .borrow-btn div[data-testid="stFormSubmitButton"] > button { background-color: #60A5FA !important; }
         .return-btn div[data-testid="stFormSubmitButton"] > button { background-color: #F87171 !important; }
+
+        /* 修正登記身分類別橫排 */
+        div[role="radiogroup"] { 
+            display: flex !important; flex-direction: row !important; gap: 20px !important; 
+        }
+        div[role="radiogroup"] label { font-size: 18px !important; font-weight: 800 !important; }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="main-title">🏥 內科超音波登記站</div>', unsafe_allow_html=True)
 
     # ------------------------------------------
-    # 借出模式 (可借用)
+    # 借出模式 (可登記)
     # ------------------------------------------
     if current_status == "可借用":
-        st.success("### ✅ 設備在位中 (可登記)")
+        st.success("### ✅ 設備在位中 (請登記)")
         
-        # 為了讓點選後自動更新名單，我們不把身分選擇放在 form 裡面
+        # 身分選擇放在 Form 外以便連動
         role = st.radio("登記身分", ["醫師", "專科護理師"], horizontal=True)
         
         st.markdown('<div class="borrow-btn">', unsafe_allow_html=True)
         with st.form("borrow_form"):
-            # 這裡的 user 下拉選單會根據上面的 role 自動切換名單
             user = st.selectbox("借用人", DOCTORS if role == "醫師" else NPS)
-            
             loc = st.selectbox("前往單位", ["請選擇前往單位..."] + UNIT_LIST)
             part = st.selectbox("使用部位", BODY_PARTS)
             
             st.write("")
-            if st.form_submit_button("🚀 登記並推走設備"):
+            if st.form_submit_button("🚀 登記推走設備"):
                 if loc == "請選擇前往單位...":
-                    st.error("⚠️ 請務必選擇單位")
+                    st.error("⚠️ 請務必選擇目的地單位")
                 else:
-                    new_rec = {"狀態": "借出", "職稱": role, "借用人": user, "借用時間": get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S"), "使用部位": part, "所在位置": loc, "歸還人": "", "歸還時間": "", "持續時間(分)": 0}
+                    new_rec = {"狀態": "借出", "職稱": role, "使用人": user, "使用時間": get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S"), "使用部位": part, "目前位置": loc, "歸還人": "", "歸還時間": "", "持續時間(分)": 0}
                     df = pd.concat([df, pd.DataFrame([new_rec])], ignore_index=True)
                     save_data(df)
                     st.rerun()
@@ -135,13 +129,14 @@ def main():
     # ------------------------------------------
     else:
         last_row = df.iloc[-1]
-        st.error("### ⚠️ 設備目前使用中")
+        st.error("### ⚠️ 設備使用中")
 
+        # 儀表板：滿版色塊修正版
         st.markdown(f"""
         <div class="dashboard-grid">
             <div class="info-card bg-blue">
-                <span class="label-text">👤 借用人</span>
-                <span class="value-text">{last_row['借用人']}</span>
+                <span class="label-text">👤 使用人</span>
+                <span class="value-text">{last_row['使用人']}</span>
             </div>
             <div class="info-card bg-red">
                 <span class="label-text">📍 目前位置</span>
@@ -152,17 +147,18 @@ def main():
 
         st.markdown('<div class="return-btn">', unsafe_allow_html=True)
         with st.form("return_form"):
-            st.info(f"借出時間：{last_row['借用時間']}")
-            # 預設歸還人為原借用人，也可下拉選擇他人
-            returner = st.selectbox("歸還確認人", ALL_STAFF, index=ALL_STAFF.index(last_row['借用人']) if last_row['借用人'] in ALL_STAFF else 0)
+            st.info(f"🕒 使出時間：{last_row['使用時間']}")
+            # 預設歸還人為原使用人
+            returner = st.selectbox("歸還確認人", ALL_STAFF, index=ALL_STAFF.index(last_row['使用人']) if last_row['使用人'] in ALL_STAFF else 0)
             check = st.checkbox("探頭清潔 / 線材收納 / 功能正常", value=False)
             
+            st.write("")
             if st.form_submit_button("📦 確認歸還設備"):
                 if not check:
-                    st.warning("⚠️ 請勾選確認檢查項目")
+                    st.warning("⚠️ 請先勾選確認檢查項目")
                 else:
                     now = get_taiwan_time()
-                    start_t = datetime.strptime(last_row['借用時間'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
+                    start_t = datetime.strptime(last_row['使用時間'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
                     dur = round((now - start_t).total_seconds() / 60, 1)
                     df.at[last_idx, "狀態"] = "歸還"
                     df.at[last_idx, "歸還人"] = returner
