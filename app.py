@@ -23,7 +23,7 @@ NPS = [
     "侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", 
     "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", 
     "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", 
-    "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛期"
+    "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛琪"
 ]
 
 ALL_STAFF = DOCTORS + NPS
@@ -81,14 +81,14 @@ def main():
             last_record_index = df.index[-1]
 
     # ==========================================
-    # 🔥 CSS 全局基礎設定 🔥
+    # 🔥 CSS 全局基礎設定 (Apple 風格) 🔥
     # ==========================================
     st.markdown("""
         <style>
         /* 1. iOS 背景色 */
         [data-testid="stAppViewContainer"] {
             background-color: #F2F2F7 !important;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         [data-testid="stHeader"] {
             background-color: transparent !important;
@@ -173,28 +173,24 @@ def main():
     # 情境 A：借出模式 (藍色系)
     # ==========================================
     if current_status == "可借用":
-        # === 🔧 修正：強制覆蓋按鈕樣式 (藍底黑字) ===
+        # 🔥🔥🔥 強制注入：藍色按鈕 CSS (修正版) 🔥🔥🔥
+        # 這裡的代碼只會在「可借用」時執行，保證按鈕變藍
         st.markdown("""
         <style>
-        /* 使用 div.stButton > button 提高權重，確保樣式生效 */
-        div.stButton > button {
+        /* 針對表單內的按鈕進行強制樣式覆蓋 */
+        div[data-testid="stForm"] button {
             background-color: #60A5FA !important; /* 亮藍色 */
             color: #000000 !important; /* 純黑字 */
             border: none !important;
             border-radius: 12px !important;
             padding: 16px 20px !important;
-            font-size: 22px !important;
+            font-size: 20px !important;
             font-weight: 900 !important; /* 極粗 */
             width: 100% !important; /* 滿版置中 */
             box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
-            transition: all 0.2s;
         }
-        div.stButton > button:hover {
-            background-color: #3B82F6 !important; /* 滑鼠懸停稍微變深 */
-            color: #000000 !important;
-        }
-        div.stButton > button:active {
-            transform: scale(0.98);
+        div[data-testid="stForm"] button:hover {
+            background-color: #3B82F6 !important;
         }
         </style>
         """, unsafe_allow_html=True)
@@ -232,7 +228,7 @@ def main():
             
             st.markdown("<div style='height:25px'></div>", unsafe_allow_html=True)
             
-            # 按鈕
+            # 按鈕 (CSS 已設定為 藍底黑字)
             submit = st.form_submit_button("🚀 登記推走設備")
             
             if submit:
@@ -265,28 +261,24 @@ def main():
         last_loc = df.iloc[-1]["所在位置"]
         last_time = df.iloc[-1]["借用時間"]
         
-        # === 🔧 修正：強制覆蓋按鈕樣式 (紅底黑字) ===
+        # 🔥🔥🔥 強制注入：紅色按鈕 CSS (修正版) 🔥🔥🔥
+        # 這裡的代碼只會在「歸還」時執行，保證按鈕變紅
         st.markdown("""
         <style>
-        /* 使用 div.stButton > button 提高權重，確保樣式生效 */
-        div.stButton > button {
+        /* 針對表單內的按鈕進行強制樣式覆蓋 */
+        div[data-testid="stForm"] button {
             background-color: #F87171 !important; /* 亮紅色 */
             color: #000000 !important; /* 純黑字 */
             border: none !important;
             border-radius: 12px !important;
             padding: 16px 20px !important;
-            font-size: 22px !important;
+            font-size: 20px !important;
             font-weight: 900 !important; /* 極粗 */
             width: 100% !important; /* 滿版置中 */
             box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
-            transition: all 0.2s;
         }
-        div.stButton > button:hover {
-            background-color: #EF4444 !important; /* 滑鼠懸停稍微變深 */
-            color: #000000 !important;
-        }
-        div.stButton > button:active {
-            transform: scale(0.98);
+        div[data-testid="stForm"] button:hover {
+            background-color: #EF4444 !important;
         }
         </style>
         """, unsafe_allow_html=True)
@@ -331,7 +323,7 @@ def main():
             
             st.markdown("<div style='height:25px'></div>", unsafe_allow_html=True)
 
-            # 按鈕
+            # 按鈕 (CSS 已設定為 紅底黑字)
             submit_return = st.form_submit_button("📦 確認歸還設備")
             
             if submit_return:
@@ -364,6 +356,7 @@ def main():
             with tab1:
                 st.dataframe(df.sort_index(ascending=False), use_container_width=True)
                 csv = df.to_csv(index=False).encode('utf-8-sig')
+                # 這裡的按鈕我們不強制覆蓋樣式，讓它保持預設，以免被紅/藍色影響
                 st.download_button("📥 下載備份 (CSV)", csv, "ultrasound_backup.csv", "text/csv")
 
             with tab2:
