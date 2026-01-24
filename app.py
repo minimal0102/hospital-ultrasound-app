@@ -19,6 +19,7 @@ def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def reset_and_load_data():
+    """重置並清空所有測試資料"""
     if os.path.exists(FILE_NAME):
         os.remove(FILE_NAME)
     df = pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
@@ -34,7 +35,7 @@ def save_data(df):
 def main():
     st.set_page_config(page_title="內科超音波登記站", page_icon="🏥", layout="centered")
 
-    # 資料初始化與清空
+    # 初始化資料並清空舊紀錄
     if 'initialized' not in st.session_state:
         df = reset_and_load_data()
         st.session_state.initialized = True
@@ -47,71 +48,74 @@ def main():
         current_status = "使用中"
         last_idx = df.index[-1]
 
-    # --- 萬能 CSS 覆蓋方案：強制變更按鈕外觀 ---
+    # --- 精確 CSS 修正：區分「資訊色塊」與「按鈕」 ---
     st.markdown("""
         <style>
-        /* 全域字體 */
+        /* 1. 全域字體 */
         html, body, [class*="css"] { font-family: "Microsoft JhengHei", sans-serif !important; }
+        [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
 
-        /* 移除按鈕所在的預設限制，讓它能展開 */
-        div[data-testid="stForm"] { border: 1px solid #ddd; border-radius: 15px; padding: 20px; }
-        
-        /* 強制按鈕容器滿版 */
-        div[data-testid="stFormSubmitButton"] {
-            display: block !important;
-            width: 100% !important;
-            text-align: center !important;
+        /* 2. 上方資訊儀表板色塊 (保留原始精美樣式) */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0px; }
+        .info-card {
+            border-radius: 20px;
+            padding: 30px 10px;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            color: #000 !important;
         }
+        .status-blue { background-color: #60A5FA !important; }
+        .status-red { background-color: #F87171 !important; }
+        .card-label { font-size: 18px; font-weight: 900; opacity: 0.8; }
+        .card-value { font-size: 42px; font-weight: 900; display: block; margin-top: 5px; }
 
-        /* 核心按鈕樣式：鎖定所有 stFormSubmitButton 內部的按鈕 */
-        div[data-testid="stFormSubmitButton"] > button {
+        /* 3. 按鈕專屬樣式 (強制亮藍色、滿版長方形、黑字) */
+        /* 針對登記按鈕 */
+        .borrow-section div[data-testid="stFormSubmitButton"] > button {
             width: 100% !important;
-            height: 80px !important;  /* 強制高度變成長方體 */
+            height: 70px !important;
+            background-color: #60A5FA !important; /* 亮藍色 */
+            color: #000000 !important; /* 黑字 */
             border-radius: 12px !important;
-            font-size: 26px !important;
+            font-size: 24px !important;
             font-weight: 900 !important;
             border: none !important;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
-            cursor: pointer !important;
-            margin: 10px 0px !important;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
         }
 
-        /* 亮藍色登記按鈕 (透過借用標記 class) */
-        .borrow-area button {
-            background-color: #60A5FA !important;
-            color: #000000 !important;
-        }
-
-        /* 亮紅色歸還按鈕 (透過歸還標記 class) */
-        .return-area button {
-            background-color: #F87171 !important;
-            color: #000000 !important;
-        }
-
-        /* 讓按鈕內的文字強制置中 */
-        div[data-testid="stFormSubmitButton"] button p {
-            font-size: 26px !important;
-            font-weight: 900 !important;
-            color: #000000 !important;
-            margin: 0 auto !important;
-            text-align: center !important;
+        /* 針對歸還按鈕 */
+        .return-section div[data-testid="stFormSubmitButton"] > button {
             width: 100% !important;
+            height: 70px !important;
+            background-color: #F87171 !important; /* 亮紅色 */
+            color: #000000 !important; /* 黑字 */
+            border-radius: 12px !important;
+            font-size: 24px !important;
+            font-weight: 900 !important;
+            border: none !important;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+        }
+
+        /* 確保按鈕內文字強制變黑且置中 */
+        div[data-testid="stFormSubmitButton"] button p {
+            color: #000000 !important;
+            font-size: 24px !important;
+            font-weight: 900 !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<h1 style="text-align:center;">🏥 內科超音波登記站</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 style="text-align:center; font-weight:900;">🏥 內科超音波登記站</h1>', unsafe_allow_html=True)
 
     if current_status == "可借用":
         st.success("### ✅ 設備在位 (請登記使用)")
-        role = st.radio("登記身分", ["醫師", "專科護理師"], horizontal=True)
+        role = st.radio("1. 登記身分", ["醫師", "專科護理師"], horizontal=True)
         
-        # 使用 div 標記區域，讓 CSS 抓取顏色
-        st.markdown('<div class="borrow-area">', unsafe_allow_html=True)
+        st.markdown('<div class="borrow-section">', unsafe_allow_html=True)
         with st.form("borrow_form"):
-            user = st.selectbox("使用人姓名", DOCTORS if role == "醫師" else NPS)
-            loc = st.selectbox("前往單位", ["請選擇單位..."] + UNIT_LIST)
-            part = st.selectbox("使用部位", BODY_PARTS)
+            user = st.selectbox("2. 使用人姓名", DOCTORS if role == "醫師" else NPS)
+            loc = st.selectbox("3. 前往單位", ["請選擇單位..."] + UNIT_LIST)
+            part = st.selectbox("4. 使用部位", BODY_PARTS)
             if st.form_submit_button("🚀 登記推走設備"):
                 if loc == "請選擇單位...":
                     st.error("⚠️ 請務必選擇目的地單位")
@@ -126,20 +130,27 @@ def main():
         last_row = df.iloc[-1]
         st.error("### ⚠️ 設備目前使用中")
         
-        # 狀態顯示欄位
-        col1, col2 = st.columns(2)
-        with col1:
-            st.info(f"👤 使用人：**{last_row['使用人']}**")
-        with col2:
-            st.warning(f"📍 位置：**{last_row['目前位置']}**")
+        # 資訊儀表板
+        st.markdown(f"""
+            <div class="dashboard-grid">
+                <div class="info-card status-blue">
+                    <span class="card-label">👤 使用人</span>
+                    <span class="card-value">{last_row['使用人']}</span>
+                </div>
+                <div class="info-card status-red">
+                    <span class="card-label">📍 目前位置</span>
+                    <span class="card-value">{last_row['目前位置']}</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
-        st.markdown('<div class="return-area">', unsafe_allow_html=True)
+        st.markdown('<div class="return-section">', unsafe_allow_html=True)
         with st.form("return_form"):
-            st.write(f"🕒 借出時間：{last_row['使用時間']}")
+            st.info(f"🕒 借出時間：{last_row['使用時間']}")
             check = st.checkbox("✅ 探頭清潔 / 線材收納 / 功能正常")
             if st.form_submit_button("📦 歸還設備"):
                 if not check:
-                    st.warning("⚠️ 請先勾選確認項目")
+                    st.warning("⚠️ 請先勾選確認清消項目")
                 else:
                     now = get_taiwan_time()
                     start_t = datetime.strptime(last_row['使用時間'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
@@ -152,7 +163,7 @@ def main():
         st.markdown('</div>', unsafe_allow_html=True)
 
     if not df.empty:
-        with st.expander("📊 查看歷史紀錄"):
+        with st.expander("📊 查看紀錄"):
             st.dataframe(df.sort_index(ascending=False), use_container_width=True)
 
 if __name__ == "__main__":
