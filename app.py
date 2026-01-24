@@ -56,12 +56,15 @@ def main():
         
         .main-title { text-align: center; font-weight: 900; font-size: 2.2rem; color: #000; margin-bottom: 25px; }
 
-        /* 標籤文字加粗尺寸 */
-        label[data-testid="stWidgetLabel"] p {
-            font-size: 18px !important;
-            font-weight: 900 !important;
-            color: #444 !important;
+        /* 修正：點選按鈕橫向排列與尺寸 */
+        div[data-testid="stMarkdownContainer"] > p { font-size: 18px !important; font-weight: 900 !important; }
+        div[role="radiogroup"] { 
+            display: flex !important; 
+            flex-direction: row !important; 
+            gap: 30px !important; 
+            padding: 10px 0px !important;
         }
+        div[role="radiogroup"] label { font-size: 20px !important; font-weight: 700 !important; }
 
         /* 儀表板方塊：背景色滿版 */
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0px; }
@@ -105,12 +108,12 @@ def main():
     if current_status == "可借用":
         st.success("### ✅ 設備在位中 (可登記)")
         
+        # 為了讓點選後自動更新名單，我們不把身分選擇放在 form 裡面
+        role = st.radio("登記身分", ["醫師", "專科護理師"], horizontal=True)
+        
         st.markdown('<div class="borrow-btn">', unsafe_allow_html=True)
         with st.form("borrow_form"):
-            # 修改：將登記身分改為下拉選單 (selectbox)
-            role = st.selectbox("登記身分", ["醫師", "專科護理師"])
-            
-            # 根據選擇的身分動態更新借用人名單
+            # 這裡的 user 下拉選單會根據上面的 role 自動切換名單
             user = st.selectbox("借用人", DOCTORS if role == "醫師" else NPS)
             
             loc = st.selectbox("前往單位", ["請選擇前往單位..."] + UNIT_LIST)
@@ -150,7 +153,7 @@ def main():
         st.markdown('<div class="return-btn">', unsafe_allow_html=True)
         with st.form("return_form"):
             st.info(f"借出時間：{last_row['借用時間']}")
-            # 歸還人選單
+            # 預設歸還人為原借用人，也可下拉選擇他人
             returner = st.selectbox("歸還確認人", ALL_STAFF, index=ALL_STAFF.index(last_row['借用人']) if last_row['借用人'] in ALL_STAFF else 0)
             check = st.checkbox("探頭清潔 / 線材收納 / 功能正常", value=False)
             
