@@ -43,10 +43,10 @@ def main():
         current_status = "使用中"
         last_idx = df.index[-1]
 
-    # --- 高對比 CSS 注入：按鈕視覺優化核心 ---
+    # --- 高對比、寬鬆、滿版 CSS 注入 ---
     st.markdown("""
         <style>
-        /* 全域字體 */
+        /* 全域字體優化 */
         html, body, [class*="css"] {
             font-family: "Microsoft JhengHei", "PingFang TC", sans-serif !important;
         }
@@ -54,15 +54,15 @@ def main():
         [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
         header, [data-testid="stHeader"] { visibility: hidden; height: 0px; }
         
-        .main-title { text-align: center; font-weight: 900; font-size: 2.2rem; color: #000; margin-bottom: 25px; }
+        .main-title { text-align: center; font-weight: 900; font-size: 2.5rem; color: #000; margin-bottom: 25px; }
 
-        /* 儀表板方塊 */
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0px; }
+        /* 資訊儀表板：色塊背景滿版且不擠在一起 */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 25px 0px; }
         .info-card {
-            border-radius: 20px;
-            padding: 25px 5px;
+            border-radius: 25px;
+            padding: 40px 10px; /* 增加內距，確保不擁擠 */
             text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -70,61 +70,64 @@ def main():
         .bg-blue { background-color: #60A5FA !important; }
         .bg-red { background-color: #F87171 !important; }
         
-        .label-text { font-size: 16px; color: #000; font-weight: 900; margin-bottom: 10px; opacity: 0.8; }
-        .value-text { font-size: 42px; font-weight: 900; color: #000; }
+        .label-text { font-size: 18px; color: #000; font-weight: 900; margin-bottom: 15px; opacity: 0.7; }
+        .value-text { font-size: 45px; font-weight: 900; color: #000; letter-spacing: 2px; }
 
-        /* --- 按鈕樣式強制鎖定邏輯 --- */
-        /* 使用 data-testid 鎖定所有表單提交按鈕 */
+        /* 強制按鈕變身滿版色塊：亮色背景、純黑極粗、尺寸調整 */
+        div[data-testid="stFormSubmitButton"] { text-align: center; width: 100%; }
+        
         div[data-testid="stFormSubmitButton"] > button {
             width: 100% !important;
-            border-radius: 16px !important;
-            padding: 24px 0 !important;
-            font-size: 24px !important;  /* 按鈕文字放大 */
-            font-weight: 900 !important; /* 極粗體 */
+            border-radius: 20px !important;
+            padding: 30px 0 !important; /* 加高按鈕，顯得更寬裕 */
+            font-size: 26px !important;  /* 文字尺寸調整 */
+            font-weight: 900 !important;
             color: #000000 !important;   /* 純黑字體 */
             border: none !important;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.15) !important;
-            transition: transform 0.1s ease;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2) !important;
+            margin-top: 20px;
         }
 
-        /* 針對登記狀態下的按鈕 (藉由父階層 borrow-btn 區分) */
+        /* 登記按鈕亮藍控制 */
         .borrow-btn div[data-testid="stFormSubmitButton"] > button {
             background-color: #60A5FA !important;
         }
 
-        /* 針對歸還狀態下的按鈕 (藉由父階層 return-btn 區分) */
+        /* 歸還按鈕亮紅控制 */
         .return-btn div[data-testid="stFormSubmitButton"] > button {
             background-color: #F87171 !important;
         }
         
-        /* 點擊反饋效果 */
-        div[data-testid="stFormSubmitButton"] > button:active {
-            transform: scale(0.98);
+        /* 橫排點選樣式優化 */
+        div[role="radiogroup"] { 
+            display: flex !important; flex-direction: row !important; gap: 40px !important; 
+            margin-bottom: 20px;
         }
+        div[role="radiogroup"] label { font-size: 20px !important; font-weight: 900 !important; }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="main-title">🏥 內科超音波登記站</div>', unsafe_allow_html=True)
 
     # ------------------------------------------
-    # 借出模式 (可借用)
+    # 登記模式 (可使用)
     # ------------------------------------------
     if current_status == "可借用":
-        st.success("### ✅ 設備在位中 (可登記)")
+        st.success("### ✅ 設備在位 (請登記使用)")
         
         role = st.radio("登記身分", ["醫師", "專科護理師"], horizontal=True)
         
-        # 使用 div 包裹以便 CSS 針對性鎖定按鈕顏色
         st.markdown('<div class="borrow-btn">', unsafe_allow_html=True)
         with st.form("borrow_form"):
             user = st.selectbox("使用人", DOCTORS if role == "醫師" else NPS)
-            loc = st.selectbox("前往單位", ["請選擇前往單位..."] + UNIT_LIST)
+            loc = st.selectbox("前往單位", ["請選擇單位..."] + UNIT_LIST)
             part = st.selectbox("使用部位", BODY_PARTS)
             
             st.write("")
-            if st.form_submit_button("登記並推走"):
-                if loc == "請選擇前往單位...":
-                    st.error("⚠️ 請務必選擇單位")
+            # 強制變為置中亮藍滿版色塊
+            if st.form_submit_button("🚀 登入推走設備"):
+                if loc == "請選擇單位...":
+                    st.error("⚠️ 請選擇目的地單位")
                 else:
                     new_rec = {"狀態": "借出", "職稱": role, "使用人": user, "使用時間": get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S"), "使用部位": part, "目前位置": loc, "歸還人": "", "歸還時間": "", "持續時間(分)": 0}
                     df = pd.concat([df, pd.DataFrame([new_rec])], ignore_index=True)
@@ -139,6 +142,7 @@ def main():
         last_row = df.iloc[-1]
         st.error("### ⚠️ 設備目前使用中")
 
+        # 置中資訊儀表板
         st.markdown(f"""
         <div class="dashboard-grid">
             <div class="info-card bg-blue">
@@ -154,15 +158,15 @@ def main():
 
         st.markdown('<div class="return-btn">', unsafe_allow_html=True)
         with st.form("return_form"):
-            st.info(f"借出時間：{last_row['使用時間']}")
-            # 修正：歸還人清單關聯到原使用人，防錯處理
-            current_user_name = last_row['使用人']
-            returner = st.selectbox("歸還確認人", ALL_STAFF, index=ALL_STAFF.index(current_user_name) if current_user_name in ALL_STAFF else 0)
-            check = st.checkbox("探頭清潔 / 線材收納 / 功能正常", value=False)
+            st.info(f"🕒 借出時間：{last_row['使用時間']}")
+            returner = st.selectbox("歸還確認人", ALL_STAFF, index=ALL_STAFF.index(last_row['使用人']) if last_row['使用人'] in ALL_STAFF else 0)
+            check = st.checkbox("✅ 探頭清潔 / 線材收納 / 功能正常", value=False)
             
-            if st.form_submit_button("確認歸還"):
+            st.write("")
+            # 強制變為置中亮紅滿版色塊
+            if st.form_submit_button("📦 歸還設備"):
                 if not check:
-                    st.warning("⚠️ 請勾選確認檢查項目")
+                    st.warning("⚠️ 請勾選確認清消")
                 else:
                     now = get_taiwan_time()
                     start_t = datetime.strptime(last_row['使用時間'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
@@ -177,7 +181,4 @@ def main():
 
     if not df.empty:
         with st.expander("📊 查看紀錄"):
-            st.dataframe(df.sort_index(ascending=False), use_container_width=True)
-
-if __name__ == "__main__":
-    main()
+            st.dataframe(df.sort_index(ascending=False
