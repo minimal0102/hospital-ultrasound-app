@@ -43,10 +43,10 @@ def main():
         current_status = "使用中"
         last_idx = df.index[-1]
 
-    # --- 精確修正 CSS ---
+    # --- 高對比 CSS 注入 ---
     st.markdown("""
         <style>
-        /* 全域字體優化 */
+        /* 全域字體 */
         html, body, [class*="css"] {
             font-family: "Microsoft JhengHei", "PingFang TC", sans-serif !important;
         }
@@ -56,17 +56,14 @@ def main():
         
         .main-title { text-align: center; font-weight: 900; font-size: 2.2rem; color: #000; margin-bottom: 25px; }
 
-        /* 修正：登記身分类別橫向排列 */
-        div[data-testid="stMarkdownContainer"] > p { font-size: 18px !important; font-weight: 900 !important; color: #444; }
-        div[role="radiogroup"] { 
-            display: flex !important; 
-            flex-direction: row !important; 
-            justify-content: flex-start !important; 
-            gap: 20px !important;
-            margin-bottom: 15px !important;
+        /* 標籤文字加粗尺寸 */
+        label[data-testid="stWidgetLabel"] p {
+            font-size: 18px !important;
+            font-weight: 900 !important;
+            color: #444 !important;
         }
 
-        /* 儀表板方塊：背景色滿版修正 */
+        /* 儀表板方塊：背景色滿版 */
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0px; }
         .info-card {
             border-radius: 20px;
@@ -83,7 +80,7 @@ def main():
         .label-text { font-size: 16px; color: #000; font-weight: 900; margin-bottom: 10px; opacity: 0.8; }
         .value-text { font-size: 42px; font-weight: 900; color: #000; }
 
-        /* 按鈕樣式：亮色背景、純黑極粗 */
+        /* 按鈕樣式：亮色背景、純黑極粗 20px */
         div[data-testid="stFormSubmitButton"] > button {
             width: 100% !important;
             border-radius: 16px !important;
@@ -110,16 +107,19 @@ def main():
         
         st.markdown('<div class="borrow-btn">', unsafe_allow_html=True)
         with st.form("borrow_form"):
-            # 修正：強制 radio 為橫向
-            role = st.radio("登記身分", ["醫師", "專科護理師"], horizontal=True)
+            # 修改：將登記身分改為下拉選單 (selectbox)
+            role = st.selectbox("登記身分", ["醫師", "專科護理師"])
+            
+            # 根據選擇的身分動態更新借用人名單
             user = st.selectbox("借用人", DOCTORS if role == "醫師" else NPS)
+            
             loc = st.selectbox("前往單位", ["請選擇前往單位..."] + UNIT_LIST)
             part = st.selectbox("使用部位", BODY_PARTS)
             
             st.write("")
             if st.form_submit_button("🚀 登記並推走設備"):
                 if loc == "請選擇前往單位...":
-                    st.error("⚠️ 請選擇單位")
+                    st.error("⚠️ 請務必選擇單位")
                 else:
                     new_rec = {"狀態": "借出", "職稱": role, "借用人": user, "借用時間": get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S"), "使用部位": part, "所在位置": loc, "歸還人": "", "歸還時間": "", "持續時間(分)": 0}
                     df = pd.concat([df, pd.DataFrame([new_rec])], ignore_index=True)
@@ -156,7 +156,7 @@ def main():
             
             if st.form_submit_button("📦 確認歸還設備"):
                 if not check:
-                    st.warning("⚠️ 請勾選確認檢查")
+                    st.warning("⚠️ 請勾選確認檢查項目")
                 else:
                     now = get_taiwan_time()
                     start_t = datetime.strptime(last_row['借用時間'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
