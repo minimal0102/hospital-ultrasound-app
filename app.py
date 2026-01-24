@@ -8,7 +8,7 @@ import os
 # ==========================================
 FILE_NAME = 'ultrasound_log.csv'
 DOCTORS = ["朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", "石振昌", "王志弘", "鄭穆良", "蔡均埏", "楊振杰", "趙令瑞", "許智凱", "林純全", "孫宏傑", "繆偉傑", "陳翌真", "卓俊宏", "林斈府", "葉俊麟", "莊永鑣", "李坤峰", "何承恩", "沈治華", "PGY醫師"]
-NPS = ["侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛期"]
+NPS = ["侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛琪"]
 ALL_STAFF = DOCTORS + NPS
 UNIT_LIST = ["3A", "3B", "5A", "5B", "6A", "6B", "7A", "7B", "RCC", "6D", "6F", "檢查室"]
 BODY_PARTS = ["胸腔 (Thoracic)", "心臟 (Cardiac)", "腹部 (Abdominal)", "膀胱 (Bladder)", "下肢 (Lower Limb)", "靜脈留置 (IV insertion)"]
@@ -43,82 +43,88 @@ def main():
         current_status = "使用中"
         last_idx = df.index[-1]
 
-    # --- 高對比、滿版 CSS 注入 ---
+    # --- 強力 CSS 修正：解決白色小按鈕問題 ---
     st.markdown("""
         <style>
+        /* 全域字體加粗 */
         html, body, [class*="css"] {
-            font-family: "Microsoft JhengHei", "PingFang TC", sans-serif !important;
+            font-family: "Microsoft JhengHei", sans-serif !important;
         }
+
         [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
         header, [data-testid="stHeader"] { visibility: hidden; height: 0px; }
         
         .main-title { text-align: center; font-weight: 900; font-size: 2.5rem; color: #000; margin-bottom: 25px; }
 
-        /* 資訊儀表板：色塊背景滿版且不擠在一起 */
+        /* 儀表板方塊：背景滿版 */
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 25px 0px; }
         .info-card {
             border-radius: 25px;
             padding: 40px 10px;
             text-align: center;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
         }
-        /* 借用人底色改為亮藍 */
         .bg-blue { background-color: #60A5FA !important; }
-        /* 位置底色改為亮紅 */
         .bg-red { background-color: #F87171 !important; }
-        
-        .label-text { font-size: 18px; color: #000; font-weight: 900; margin-bottom: 15px; opacity: 0.7; }
-        .value-text { font-size: 45px; font-weight: 900; color: #000; letter-spacing: 2px; }
+        .value-text { font-size: 45px; font-weight: 900; color: #000; }
 
-        /* --- 按鈕樣式：強制亮色背景、純黑極粗、滿版 --- */
-        div[data-testid="stFormSubmitButton"] { text-align: center; width: 100%; }
-        
+        /* --- 核心按鈕修正：強制取代白色背景 --- */
+        /* 1. 讓 Form 內部的按鈕容器置中並滿版 */
+        div[data-testid="stFormSubmitButton"] {
+            display: flex !important;
+            justify-content: center !important;
+            width: 100% !important;
+        }
+
+        /* 2. 強制按鈕外觀：移除白色，改為滿版色塊 */
         div[data-testid="stFormSubmitButton"] > button {
             width: 100% !important;
             border-radius: 20px !important;
-            padding: 30px 0 !important; /* 加高按鈕 */
-            font-size: 26px !important;  /* 文字尺寸調整 */
+            padding: 30px 0 !important;
+            font-size: 26px !important; /* 文字加大 */
             font-weight: 900 !important;
-            color: #000000 !important;   /* 純黑字體 */
+            color: #000000 !important; /* 強制純黑字 */
             border: none !important;
             box-shadow: 0 8px 20px rgba(0,0,0,0.2) !important;
-            margin-top: 20px;
+            margin-top: 20px !important;
         }
 
-        /* 登記按鈕顏色 */
-        .borrow-btn div[data-testid="stFormSubmitButton"] > button { background-color: #60A5FA !important; }
-        /* 歸還按鈕顏色 */
-        .return-btn div[data-testid="stFormSubmitButton"] > button { background-color: #F87171 !important; }
-        
-        /* 橫排點選樣式 */
-        div[role="radiogroup"] { 
-            display: flex !important; flex-direction: row !important; gap: 40px !important; 
-            margin-bottom: 20px;
+        /* 3. 根據狀態強制按鈕底色 */
+        /* 登記模式：亮藍色 */
+        .borrow-btn div[data-testid="stFormSubmitButton"] > button {
+            background-color: #60A5FA !important;
         }
-        div[role="radiogroup"] label { font-size: 20px !important; font-weight: 900 !important; }
+        /* 歸還模式：亮紅色 */
+        .return-btn div[data-testid="stFormSubmitButton"] > button {
+            background-color: #F87171 !important;
+        }
+
+        /* 下拉選單文字放大 */
+        div[data-testid="stSelectbox"] label p {
+            font-size: 20px !important;
+            font-weight: 900 !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="main-title">🏥 內科超音波登記站</div>', unsafe_allow_html=True)
 
-    # ------------------------------------------
-    # 借出模式 (可登記)
-    # ------------------------------------------
     if current_status == "可借用":
-        st.success("### ✅ 設備在位中 (請登記使用)")
-        role = st.radio("登記身分", ["醫師", "專科護理師"], horizontal=True)
+        st.success("### ✅ 設備在位 (請登記使用)")
         
+        # 身分點選置於 Form 外
+        role = st.radio("1. 登記身分", ["醫師", "專科護理師"], horizontal=True)
+        
+        # 使用特定 class 包裹 Form，以便 CSS 抓取按鈕顏色
         st.markdown('<div class="borrow-btn">', unsafe_allow_html=True)
         with st.form("borrow_form"):
-            user = st.selectbox("使用人", DOCTORS if role == "醫師" else NPS)
-            loc = st.selectbox("前往單位", ["請選擇單位..."] + UNIT_LIST)
-            part = st.selectbox("使用部位", BODY_PARTS)
+            user = st.selectbox("2. 使用人姓名", DOCTORS if role == "醫師" else NPS)
+            loc = st.selectbox("3. 前往單位", ["請選擇單位..."] + UNIT_LIST)
+            part = st.selectbox("4. 使用部位", BODY_PARTS)
             
             st.write("")
-            if st.form_submit_button("登記推走設備"):
+            # 這個按鈕現在會被 CSS 強制變為亮藍滿版色塊
+            if st.form_submit_button("🚀 登記推走設備"):
                 if loc == "請選擇單位...":
                     st.error("⚠️ 請務必選擇目的地單位")
                 else:
@@ -128,22 +134,18 @@ def main():
                     st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ------------------------------------------
-    # 歸還模式 (使用中)
-    # ------------------------------------------
     else:
         last_row = df.iloc[-1]
         st.error("### ⚠️ 設備目前使用中")
 
-        # 滿版高對比儀表板
         st.markdown(f"""
         <div class="dashboard-grid">
             <div class="info-card bg-blue">
-                <span class="label-text">👤 使用人</span>
+                <span style="font-size:18px; font-weight:900;">👤 使用人</span><br>
                 <span class="value-text">{last_row['使用人']}</span>
             </div>
             <div class="info-card bg-red">
-                <span class="label-text">📍 目前位置</span>
+                <span style="font-size:18px; font-weight:900;">📍 目前位置</span><br>
                 <span class="value-text">{last_row['目前位置']}</span>
             </div>
         </div>
@@ -152,31 +154,26 @@ def main():
         st.markdown('<div class="return-btn">', unsafe_allow_html=True)
         with st.form("return_form"):
             st.info(f"🕒 借出時間：{last_row['使用時間']}")
-            returner = st.selectbox("歸還確認人", ALL_STAFF, index=ALL_STAFF.index(last_row['使用人']) if last_row['使用人'] in ALL_STAFF else 0)
             check = st.checkbox("✅ 探頭清潔 / 線材收納 / 功能正常", value=False)
             
             st.write("")
-            if st.form_submit_button("歸還設備"):
+            # 這個按鈕現在會被 CSS 強制變為亮紅滿版色塊
+            if st.form_submit_button("📦 歸還設備"):
                 if not check:
-                    st.warning("⚠️ 請勾選確認清消")
+                    st.warning("⚠️ 請先勾選確認清消項目")
                 else:
                     now = get_taiwan_time()
                     start_t = datetime.strptime(last_row['使用時間'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
                     dur = round((now - start_t).total_seconds() / 60, 1)
                     df.at[last_idx, "狀態"] = "歸還"
-                    df.at[last_idx, "歸還人"] = returner
                     df.at[last_idx, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
                     df.at[last_idx, "持續時間(分)"] = dur
                     save_data(df)
                     st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ------------------------------------------
-    # 歷史紀錄 (修正括號語法錯誤)
-    # ------------------------------------------
     if not df.empty:
         with st.expander("📊 查看紀錄"):
-            # 確保括號正確閉合
             st.dataframe(df.sort_index(ascending=False), use_container_width=True)
 
 if __name__ == "__main__":
