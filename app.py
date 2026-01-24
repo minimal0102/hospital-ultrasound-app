@@ -87,20 +87,16 @@ def main():
         /* 數值文字 (姓名/地點) - 置中放大 */
         .value-text { font-size: 42px; font-weight: 900; color: #000; }
 
-        /* 按鈕樣式：強制亮色、18px、純黑極粗 */
+        /* 按鈕樣式：強制亮色、20px、純黑極粗 */
         div[data-testid="stFormSubmitButton"] > button {
             width: 100% !important;
-            border-radius: 14px !important;
-            padding: 20px 0 !important;
-            font-size: 24px !important;
+            border-radius: 16px !important;
+            padding: 24px 0 !important;
+            font-size: 20px !important;
             font-weight: 900 !important;
             color: #000 !important;
             border: none !important;
             box-shadow: 0 6px 15px rgba(0,0,0,0.12) !important;
-            # 登記按鈕顏色：亮藍色底 (#60A5FA)
-        st.markdown("<style>div.stButton > button { background-color: #60A5FA !important; }</style>", unsafe_allow_html=True)
-        # 歸還按鈕顏色：亮紅色底 (#F87171)
-        st.markdown("<style>div.stButton > button { background-color: #F87171 !important; }</style>", unsafe_allow_html=True)
         }
 
         .borrow-btn div[data-testid="stFormSubmitButton"] > button { background-color: #60A5FA !important; }
@@ -143,7 +139,7 @@ def main():
         st.markdown(f"""
         <div class="dashboard-grid">
             <div class="info-card bg-blue">
-                <span class="label-text">👤 使用人</span>
+                <span class="label-text">👤 借用人</span>
                 <span class="value-text">{last_row['借用人']}</span>
             </div>
             <div class="info-card bg-red">
