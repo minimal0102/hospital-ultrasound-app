@@ -8,7 +8,7 @@ import os
 # ==========================================
 FILE_NAME = 'ultrasound_log.csv'
 DOCTORS = ["朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", "石振昌", "王志弘", "鄭穆良", "蔡均埏", "楊振杰", "趙令瑞", "許智凱", "林純全", "孫宏傑", "繆偉傑", "陳翌真", "卓俊宏", "林斈府", "葉俊麟", "莊永鑣", "李坤峰", "何承恩", "沈治華", "PGY醫師"]
-NPS = ["侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛琪"]
+NPS = ["侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛期"]
 ALL_STAFF = DOCTORS + NPS
 UNIT_LIST = ["3A", "3B", "5A", "5B", "6A", "6B", "7A", "7B", "RCC", "6D", "6F", "檢查室"]
 BODY_PARTS = ["胸腔 (Thoracic)", "心臟 (Cardiac)", "腹部 (Abdominal)", "膀胱 (Bladder)", "下肢 (Lower Limb)", "靜脈留置 (IV insertion)"]
@@ -43,7 +43,7 @@ def main():
         current_status = "使用中"
         last_idx = df.index[-1]
 
-    # --- 高對比 CSS 注入 ---
+    # --- 高對比 CSS 注入：按鈕視覺優化核心 ---
     st.markdown("""
         <style>
         /* 全域字體 */
@@ -56,17 +56,7 @@ def main():
         
         .main-title { text-align: center; font-weight: 900; font-size: 2.2rem; color: #000; margin-bottom: 25px; }
 
-        /* 修正：點選按鈕橫向排列與尺寸 */
-        div[data-testid="stMarkdownContainer"] > p { font-size: 18px !important; font-weight: 900 !important; }
-        div[role="radiogroup"] { 
-            display: flex !important; 
-            flex-direction: row !important; 
-            gap: 30px !important; 
-            padding: 10px 0px !important;
-        }
-        div[role="radiogroup"] label { font-size: 20px !important; font-weight: 700 !important; }
-
-        /* 儀表板方塊：背景色滿版 */
+        /* 儀表板方塊 */
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0px; }
         .info-card {
             border-radius: 20px;
@@ -83,20 +73,34 @@ def main():
         .label-text { font-size: 16px; color: #000; font-weight: 900; margin-bottom: 10px; opacity: 0.8; }
         .value-text { font-size: 42px; font-weight: 900; color: #000; }
 
-        /* 按鈕樣式：亮色背景、純黑極粗 20px */
+        /* --- 按鈕樣式強制鎖定邏輯 --- */
+        /* 使用 data-testid 鎖定所有表單提交按鈕 */
         div[data-testid="stFormSubmitButton"] > button {
             width: 100% !important;
             border-radius: 16px !important;
             padding: 24px 0 !important;
-            font-size: 20px !important;
-            font-weight: 900 !important;
-            color: #000 !important;
+            font-size: 24px !important;  /* 按鈕文字放大 */
+            font-weight: 900 !important; /* 極粗體 */
+            color: #000000 !important;   /* 純黑字體 */
             border: none !important;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.12) !important;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.15) !important;
+            transition: transform 0.1s ease;
         }
 
-        .borrow-btn div[data-testid="stFormSubmitButton"] > button { background-color: #60A5FA !important; }
-        .return-btn div[data-testid="stFormSubmitButton"] > button { background-color: #F87171 !important; }
+        /* 針對登記狀態下的按鈕 (藉由父階層 borrow-btn 區分) */
+        .borrow-btn div[data-testid="stFormSubmitButton"] > button {
+            background-color: #60A5FA !important;
+        }
+
+        /* 針對歸還狀態下的按鈕 (藉由父階層 return-btn 區分) */
+        .return-btn div[data-testid="stFormSubmitButton"] > button {
+            background-color: #F87171 !important;
+        }
+        
+        /* 點擊反饋效果 */
+        div[data-testid="stFormSubmitButton"] > button:active {
+            transform: scale(0.98);
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -108,19 +112,17 @@ def main():
     if current_status == "可借用":
         st.success("### ✅ 設備在位中 (可登記)")
         
-        # 為了讓點選後自動更新名單，我們不把身分選擇放在 form 裡面
         role = st.radio("登記身分", ["醫師", "專科護理師"], horizontal=True)
         
+        # 使用 div 包裹以便 CSS 針對性鎖定按鈕顏色
         st.markdown('<div class="borrow-btn">', unsafe_allow_html=True)
         with st.form("borrow_form"):
-            # 這裡的 user 下拉選單會根據上面的 role 自動切換名單
             user = st.selectbox("使用人", DOCTORS if role == "醫師" else NPS)
-            
             loc = st.selectbox("前往單位", ["請選擇前往單位..."] + UNIT_LIST)
             part = st.selectbox("使用部位", BODY_PARTS)
             
             st.write("")
-            if st.form_submit_button("登記"):
+            if st.form_submit_button("登記並推走"):
                 if loc == "請選擇前往單位...":
                     st.error("⚠️ 請務必選擇單位")
                 else:
@@ -153,11 +155,12 @@ def main():
         st.markdown('<div class="return-btn">', unsafe_allow_html=True)
         with st.form("return_form"):
             st.info(f"借出時間：{last_row['使用時間']}")
-            # 預設歸還人為原使用人，也可下拉選擇他人
-            returner = st.selectbox("歸還確認人", ALL_STAFF, index=ALL_STAFF.index(last_row['借用人']) if last_row['借用人'] in ALL_STAFF else 0)
+            # 修正：歸還人清單關聯到原使用人，防錯處理
+            current_user_name = last_row['使用人']
+            returner = st.selectbox("歸還確認人", ALL_STAFF, index=ALL_STAFF.index(current_user_name) if current_user_name in ALL_STAFF else 0)
             check = st.checkbox("探頭清潔 / 線材收納 / 功能正常", value=False)
             
-            if st.form_submit_button("📦 確認歸還設備"):
+            if st.form_submit_button("確認歸還"):
                 if not check:
                     st.warning("⚠️ 請勾選確認檢查項目")
                 else:
