@@ -26,9 +26,6 @@ def load_data():
     try:
         # 強制指定網址與分頁標籤 'Sheet1'
         return conn.read(spreadsheet=GSHEET_URL, worksheet="Sheet1", ttl=0)
-    except Exception as e:
-        st.error("❌ 讀取失敗。請確認 Secrets 中的網址正確，且試算表標籤名稱為 'Sheet1'。")
-        st.info(f"技術錯誤訊息: {e}")
         return pd.DataFrame()
 
 # ==========================================
