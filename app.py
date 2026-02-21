@@ -4,11 +4,12 @@ import pandas as pd
 from datetime import datetime, timedelta, timezone
 
 # ==========================================
-# 1. 核心雲端連線設定
+# 1. 核心雲端連線與常數設定
 # ==========================================
+# 自動讀取 Secrets 中的 [connections.gsheets]
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# 這是你剛才提供的正確試算表網址
+# 你的 Google 試算表正確網址 (對應 ...6mrv4)
 GSHEET_URL = "https://docs.google.com/spreadsheets/d/1u8KVq46vpgYh9mIdtsVFGvRynOE_hiGbTNIgnr6mrv4/edit"
 
 DOCTORS = ["朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", "石振昌", "王志弘", "鄭穆良", "蔡均埏", "楊振杰", "趙令瑞", "許智凱", "林純全", "孫宏傑", "繆偉傑", "陳翌真", "卓俊宏", "林斈府", "葉俊麟", "莊永鑣", "李坤峰", "何承恩", "沈治華", "PGY醫師"]
@@ -21,13 +22,13 @@ def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def load_data():
-    """從 Google Sheets 讀取資料 (已修正縮進確保無 IndentationError)"""
+    """從 Google Sheets 讀取資料 (已修正縮進錯誤)"""
     try:
-        # 讀取名為 'Sheet1' 的分頁，ttl=0 確保抓取即時資料
+        # 強制指定網址與分頁標籤 'Sheet1'
         return conn.read(spreadsheet=GSHEET_URL, worksheet="Sheet1", ttl=0)
     except Exception as e:
-        st.error(f"❌ 讀取失敗。請確認試算表下方的標籤名稱是否為 'Sheet1'。")
-        st.info(f"錯誤訊息: {e}")
+        st.error("❌ 讀取失敗。請確認 Secrets 中的網址正確，且試算表標籤名稱為 'Sheet1'。")
+        st.info(f"技術錯誤訊息: {e}")
         return pd.DataFrame()
 
 # ==========================================
@@ -39,7 +40,7 @@ def main():
     # 1. 讀取雲端資料
     df = load_data()
     
-    # 若表格為空，建立基本欄位
+    # 若表格為空，建立基本欄位結構
     if df.empty:
         df = pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
 
@@ -81,19 +82,21 @@ def main():
                     st.warning("⚠️ 請先勾選確認項目")
                 else:
                     now = get_taiwan_time()
+                    # 更新最後一筆借出紀錄狀態
                     target_idx = df[df['狀態'] == "借出"].index[-1]
                     df.at[target_idx, "狀態"] = "歸還"
                     df.at[target_idx, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
                     
+                    # 計算持續時間 (使用 LaTeX 概念: \Delta t = t_{now} - t_{start})
                     try:
                         start_t = datetime.strptime(str(last_row['使用時間']), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
                         df.at[target_idx, "持續時間(分)"] = round((now - start_t).total_seconds() / 60, 1)
                     except:
                         df.at[target_idx, "持續時間(分)"] = 0
                     
-                    # 更新至雲端
+                    # 推送更新至雲端
                     conn.update(spreadsheet=GSHEET_URL, worksheet="Sheet1", data=df)
-                    st.toast("👍 歸還成功！感謝您的收納與維護。", icon="👍")
+                    st.toast("👍 歸還成功！感謝您的收納維護。", icon="👍")
                     st.rerun()
 
     # --- 邏輯 B: 設備在位可登記 ---
@@ -116,7 +119,7 @@ def main():
                         "使用時間": now_str, "使用部位": part, "目前位置": loc, 
                         "歸還人": "", "歸還時間": "", "持續時間(分)": 0
                     }])
-                    # 合併資料並更新至雲端
+                    # 合併並更新至雲端
                     df_updated = pd.concat([df, new_rec], ignore_index=True)
                     conn.update(spreadsheet=GSHEET_URL, worksheet="Sheet1", data=df_updated)
                     st.toast(f"👌 {user} 登記成功！資料已同步至雲端。", icon="👌")
