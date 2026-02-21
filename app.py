@@ -20,14 +20,14 @@ def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def load_data():
-    """從 Google Sheets 讀取資料 (已修正縮進與語法結構)"""
     try:
-        # 嘗試讀取網址中名為 Sheet1 的分頁
+        # 測試 1：嘗試讀取
         return conn.read(spreadsheet=GSHEET_URL, worksheet="Sheet1", ttl=0)
     except Exception as e:
-        # 如果失敗，顯示提示但不崩潰
-        st.error("❌ 讀取失敗。請確認 Secrets 中的私鑰格式正確（建議使用三引號）。")
-        st.info(f"技術錯誤訊息: {e}")
+        # 這會直接在你的 App 畫面上印出詳細病因
+        st.error("🚨 偵錯模式啟動：")
+        st.write(f"**錯誤類型:** `{type(e).__name__}`")
+        st.write(f"**詳細訊息:** `{str(e)}`")
         return pd.DataFrame()
 
 # ==========================================
