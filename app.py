@@ -9,6 +9,9 @@ from datetime import datetime, timedelta, timezone
 # 自動讀取 Secrets 中的 [connections.gsheets] 設定
 conn = st.connection("gsheets", type=GSheetsConnection)
 
+# 你的 Google 試算表正確網址
+GSHEET_URL = "https://docs.google.com/spreadsheets/d/1u8KVq46vpgYh9mIdtsVFGvRynOE_hiGbTNIgnr6mrv4/edit"
+
 DOCTORS = ["朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", "石振昌", "王志弘", "鄭穆良", "蔡均埏", "楊振杰", "趙令瑞", "許智凱", "林純全", "孫宏傑", "繆偉傑", "陳翌真", "卓俊宏", "林斈府", "葉俊麟", "莊永鑣", "李坤峰", "何承恩", "沈治華", "PGY醫師"]
 NPS = ["侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛琪"]
 UNIT_LIST = ["3A", "3B", "5A", "5B", "6A", "6B", "7A", "7B", "RCC", "6D", "6F", "檢查室"]
@@ -19,16 +22,16 @@ def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def load_data():
-    def load_data():
-    # 獲取所有工作表名稱，看看程式到底抓到什麼
-    spreadsheet_url = "https://docs.google.com/spreadsheets/d/1u8KVq46vpgYh9mIdtsVFGvRynOE_hiGbTNIgnr6mrv4/edit"
+    """從 Google Sheets 讀取資料"""
+    # 這裡確保縮進正確，對應你之前的 IndentationError
     try:
-        # 這裡會印出雲端上所有的標籤名稱
-        st.info(f"偵測到工作表標籤有：{conn.list_sheets(spreadsheet=spreadsheet_url)}")
-        return conn.read(worksheet="Sheet1", ttl=0)
+        # 指定讀取 Sheet1 工作表，ttl=0 確保抓取最新資料
+        return conn.read(spreadsheet=GSHEET_URL, worksheet="Sheet1", ttl=0)
     except Exception as e:
-        st.error(f"連線細節錯誤: {e}")
-        raise e
+        # 如果讀取失敗，會在介面上顯示原因
+        st.error(f"❌ 讀取失敗。原因可能是工作表標籤名稱不是 'Sheet1' 或金鑰失效。")
+        st.info(f"技術錯誤訊息: {e}")
+        return pd.DataFrame()
 
 # ==========================================
 # 2. 主程式介面
@@ -36,25 +39,24 @@ def load_data():
 def main():
     st.set_page_config(page_title="內科超音波登記站", page_icon="🏥", layout="centered")
 
-    # 嘗試讀取資料並檢查連線
-    try:
-        df = load_data()
-    except Exception as e:
-        st.error(f"❌ 讀取失敗。請確認 Secrets 中已加入 spreadsheet 網址且標籤名稱正確。")
-        st.info(f"技術錯誤訊息: {e}")
-        return
+    # 1. 讀取雲端資料
+    df = load_data()
+    
+    # 如果表格是空的，建立基本欄位避免崩潰
+    if df.empty:
+        df = pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
 
-    # 判斷目前設備狀態
+    # 2. 判斷目前設備狀態
     current_status = "可借用"
     last_row = None
     if not df.empty:
-        # 確保狀態字串乾淨並比對最後一筆紀錄
         df['狀態'] = df['狀態'].astype(str).str.strip()
+        # 檢查最後一筆是否為「借出」狀態
         if (df['狀態'] == "借出").any():
             current_status = "使用中"
             last_row = df[df['狀態'] == "借出"].iloc[-1]
 
-    # --- CSS 樣式 (黑框選單、阻擋鍵盤、卡片美化) ---
+    # --- 3. CSS 樣式 (黑框選單、阻擋手機鍵盤、卡片美化) ---
     st.markdown("""
         <style>
         html, body, [class*="css"] { font-family: "Microsoft JhengHei", sans-serif !important; }
@@ -88,17 +90,20 @@ def main():
                     st.warning("⚠️ 請先勾選確認項目")
                 else:
                     now = get_taiwan_time()
-                    # 更新最後一筆借出紀錄狀態
+                    # 找出最後一筆借出的索引並更新
                     target_idx = df[df['狀態'] == "借出"].index[-1]
                     df.at[target_idx, "狀態"] = "歸還"
                     df.at[target_idx, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
                     
-                    # 計算使用時間 (分鐘)
-                    start_t = datetime.strptime(str(last_row['使用時間']), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
-                    df.at[target_idx, "持續時間(分)"] = round((now - start_t).total_seconds() / 60, 1)
+                    # 計算持續時間
+                    try:
+                        start_t = datetime.strptime(str(last_row['使用時間']), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
+                        df.at[target_idx, "持續時間(分)"] = round((now - start_t).total_seconds() / 60, 1)
+                    except:
+                        df.at[target_idx, "持續時間(分)"] = 0
                     
                     # 更新至雲端
-                    conn.update(worksheet="Sheet1", data=df)
+                    conn.update(spreadsheet=GSHEET_URL, worksheet="Sheet1", data=df)
                     st.toast("👍 歸還成功！感謝您的收納與維護。", icon="👍")
                     st.rerun()
 
@@ -117,7 +122,6 @@ def main():
                     st.error("⚠️ 請務必選擇目的地單位")
                 else:
                     now_str = get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S")
-                    # 建立新紀錄
                     new_rec = pd.DataFrame([{
                         "狀態": "借出", "職稱": role, "使用人": user, 
                         "使用時間": now_str, "使用部位": part, "目前位置": loc, 
@@ -125,17 +129,16 @@ def main():
                     }])
                     # 合併資料並更新至雲端
                     df_updated = pd.concat([df, new_rec], ignore_index=True)
-                    conn.update(worksheet="Sheet1", data=df_updated)
+                    conn.update(spreadsheet=GSHEET_URL, worksheet="Sheet1", data=df_updated)
                     st.toast(f"👌 {user} 登記成功！資料已同步至雲端。", icon="👌")
                     st.rerun()
 
-    # --- 紀錄區 (已修正縮進錯誤) ---
+    # --- 4. 歷史紀錄與下載備份 ---
     st.write("---")
     with st.expander("📊 查看紀錄與下載備份"):
         if not df.empty:
             st.dataframe(df.sort_index(ascending=False), use_container_width=True)
             csv = df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
-            # 確保此處與上方的 if 對齊，無額外空格
             st.download_button("📥 下載備份 CSV", csv, "ultrasound_backup.csv", "text/csv")
 
 if __name__ == "__main__":
