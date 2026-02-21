@@ -20,14 +20,14 @@ def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def load_data():
+    """從 Google Sheets 讀取資料"""
     try:
-        # 測試 1：嘗試讀取
+        # 強制指定網址與標籤名稱
         return conn.read(spreadsheet=GSHEET_URL, worksheet="Sheet1", ttl=0)
     except Exception as e:
-        # 這會直接在你的 App 畫面上印出詳細病因
-        st.error("🚨 偵錯模式啟動：")
-        st.write(f"**錯誤類型:** `{type(e).__name__}`")
-        st.write(f"**詳細訊息:** `{str(e)}`")
+        # 如果失敗，會顯示 PermissionError 等提示
+        st.error("❌ 讀取失敗。請確認試算表已分享給 Service Account 並設為『編輯者』。")
+        st.info(f"技術錯誤訊息: {e}")
         return pd.DataFrame()
 
 # ==========================================
