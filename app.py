@@ -50,30 +50,63 @@ def main():
             current_status = "使用中"
             last_idx = df.index[-1]
 
-    # --- CSS 樣式 (延用黑框與手機優化) ---
+    # --- CSS 樣式區 (包含下拉向下、黑框、長方形按鈕) ---
     st.markdown("""
         <style>
         html, body, [class*="css"] { font-family: "Microsoft JhengHei", sans-serif !important; }
         [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
 
-        /* 下拉選單黑框加粗 */
+        /* 下拉選單黑框線 */
         div[data-baseweb="select"] > div {
-            border: 2px solid #000000 !important;
-            border-radius: 10px !important;
+            border: 1.5px solid #000000 !important;
+            border-radius: 8px !important;
         }
 
-        /* 儀表板卡片設計 */
-        .info-card {
-            border-radius: 15px; padding: 25px; text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 10px 0px;
+        /* 強制下拉選單向下開啟 */
+        div[data-baseweb="popover"] {
+            margin-top: 4px !important;
+            top: auto !important;
         }
-        .status-blue { background-color: #DBEAFE; border: 2px solid #3B82F6; color: #1E3A8A; }
-        .status-red { background-color: #FEE2E2; border: 2px solid #EF4444; color: #7F1D1D; }
+
+        /* 阻擋手機鍵盤 */
+        div[data-baseweb="select"] input {
+            inputmode: none !important;
+            caret-color: transparent !important;
+        }
+
+        /* 資訊儀表板 */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0px; }
+        .info-card {
+            border-radius: 20px; padding: 30px 10px; text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1); color: #000 !important;
+        }
+        .status-blue { background-color: #60A5FA !important; }
+        .status-red { background-color: #F87171 !important; }
+        .card-label { font-size: 18px; font-weight: 900; opacity: 0.8; }
+        .card-value { font-size: 42px; font-weight: 900; display: block; margin-top: 5px; }
+
+        /* 亮藍/亮紅 長方形按鈕 */
+        .borrow-section div[data-testid="stFormSubmitButton"] > button {
+            width: 100% !important; height: 75px !important;
+            background-color: #60A5FA !important; color: #000 !important;
+            border-radius: 12px !important; font-size: 24px !important;
+            font-weight: 900 !important; border: none !important;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+        }
+        .return-section div[data-testid="stFormSubmitButton"] > button {
+            width: 100% !important; height: 75px !important;
+            background-color: #F87171 !important; color: #000 !important;
+            border-radius: 12px !important; font-size: 24px !important;
+            font-weight: 900 !important; border: none !important;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+        }
+        div[data-testid="stFormSubmitButton"] button p {
+            color: #000 !important; font-size: 24px !important; font-weight: 900 !important;
+        }
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<h1 style="text-align:center; font-weight:900;">🏥 內科超音波登記站</h1>', unsafe_allow_html=True)
-       
 
     if current_status == "可借用":
         st.success("### ✅ 設備在位 (可登記使用)")
@@ -123,22 +156,20 @@ def main():
                     st.warning("⚠️ 請先勾選確認項目")
                 else:
                     now = get_taiwan_time()
-                    start_t = datetime.strptime(str(last_row['使用時間']), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
+                    start_t = datetime.strptime(last_row['使用時間'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
                     dur = round((now - start_t).total_seconds() / 60, 1)
                     
+                    # 歸還時也讀取最新資料確保寫回正確行數
                     df_latest = load_data_fresh()
-                    idx = df_latest.index[-1]
-                    df_latest.at[idx, "狀態"] = "歸還"
-                    df_latest.at[idx, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
-                    df_latest.at[idx, "持續時間(分)"] = dur
+                    last_idx_fresh = df_latest.index[-1]
+                    df_latest.at[last_idx_fresh, "狀態"] = "歸還"
+                    df_latest.at[last_idx_fresh, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
+                    df_latest.at[last_idx_fresh, "持續時間(分)"] = dur
                     save_data(df_latest)
-                    
-                    # --- 👍 讚手勢特效 ---
-                    st.toast("👍 歸還成功！感謝您的維護與收納。", icon="👍")
                     st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- 歷史紀錄區 ---
-    st.write("---")
+    if not df.empty:
     with st.expander("📊 查看紀錄與下載備份"):
         if not df.empty:
             st.dataframe(df.sort_index(ascending=False), use_container_width=True)
