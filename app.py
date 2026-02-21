@@ -171,11 +171,7 @@ def main():
 
     if not df.empty:
         with st.expander("📊 查看紀錄"):
-            if not df.empty:
             st.dataframe(df.sort_index(ascending=False), use_container_width=True)
-            csv = df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
-            st.download_button("📥 下載目前 CSV 紀錄", csv, "ultrasound_log.csv", "text/csv")
-
 if __name__ == "__main__":
     main()
             st.download_button("📥 下載目前 CSV 紀錄", csv, "ultrasound_log.csv", "text/csv")
