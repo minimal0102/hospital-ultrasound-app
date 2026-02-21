@@ -1,82 +1,145 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+import os
 
-# --- 頁面設定 ---
-st.set_page_config(page_title="內科超音波登記站", page_icon="📟")
+# ==========================================
+# 1. 資料與設定
+# ==========================================
+FILE_NAME = 'ultrasound_log.csv'
+DOCTORS = ["朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", "石振昌", "王志弘", "鄭穆良", "蔡均埏", "楊振杰", "趙令瑞", "許智凱", "林純全", "孫宏傑", "繆偉傑", "陳翌真", "卓俊宏", "林斈府", "葉俊麟", "莊永鑣", "李坤峰", "何承恩", "沈治華", "PGY醫師"]
+NPS = ["侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛琪"]
+UNIT_LIST = ["3A", "3B", "5A", "5B", "6A", "6B", "7A", "7B", "RCC", "6D", "6F", "檢查室"]
+BODY_PARTS = ["胸腔 (Thoracic)", "心臟 (Cardiac)", "腹部 (Abdominal)", "膀胱 (Bladder)", "下肢 (Lower Limb)", "靜脈留置 (IV insertion)"]
 
-# --- 模擬資料庫 (未來可換成 Google Sheets) ---
-if 'records' not in st.session_state:
-    st.session_state.records = []
-if 'is_away' not in st.session_state:
-    st.session_state.is_away = False
-if 'last_user' not in st.session_state:
-    st.session_state.last_user = ""
+# ==========================================
+# 2. 核心功能
+# ==========================================
+def get_taiwan_time():
+    return datetime.now(timezone(timedelta(hours=8)))
 
-# --- 標題與設備狀態紅綠燈 ---
-st.title("📟 內科超音波登記站")
+def load_data_fresh():
+    if not os.path.exists(FILE_NAME):
+        df = pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
+        df.to_csv(FILE_NAME, index=False, encoding='utf-8-sig')
+        return df
+    return pd.read_csv(FILE_NAME, encoding='utf-8-sig')
 
-if not st.session_state.is_away:
-    st.success("### ✅ 設備在位 (可登記使用)")
-else:
-    st.error(f"### ⚠️ 設備使用中 (目前由 {st.session_state.last_user} 使用中)")
+def save_data(df):
+    df.to_csv(FILE_NAME, index=False, encoding='utf-8-sig')
 
-st.divider()
+# ==========================================
+# 3. 主程式介面
+# ==========================================
+def main():
+    st.set_page_config(page_title="內科超音波登記站", page_icon="🏥", layout="centered")
 
-# --- 登記表單 ---
-with st.container():
-    # 1. 登記身分 (改成橫向按鈕)
-    role = st.radio("1. 登記身分", ["醫師", "專科護理師"], horizontal=True)
+    # 確保每次重整都抓到最新 CSV 紀錄
+    df = load_data_fresh()
     
-    # 2. 使用人姓名 (自動記住上次選擇)
-    name_list = ["朱戈靖", "其他醫師A", "其他醫師B"] # 這裡可依需求修改
-    name = st.selectbox("2. 使用人姓名", name_list)
-    
-    # 3. 前往單位 (增加快速按鈕區)
-    st.write("3. 前往單位")
-    unit_cols = st.columns(4)
-    target_unit = st.text_input("或手動輸入單位", key="unit_input", placeholder="例如: 12B ICU")
-    
-    # 快速選擇功能
-    if unit_cols[0].button("6B"): target_unit = "6B"
-    if unit_cols[1].button("6A"): target_unit = "11G"
-    if unit_cols[2].button("7A"): target_unit = "ER"
-    if unit_cols[3].button("7B"): target_unit = "6G"
+    current_status = "可借用"
+    if not df.empty:
+        last_record = df.iloc[-1]
+        if str(last_record["狀態"]).strip() == "借出":
+            current_status = "使用中"
 
-    # 4. 使用部位
-    body_parts = ["胸腔 (Thoracic)", "腹部 (Abdomen)", "心臟 (Echo)", "血管 (Vascular)"]
-    part = st.selectbox("4. 使用部位", body_parts)
+    # --- CSS 樣式 (延用黑框與手機優化) ---
+    st.markdown("""
+        <style>
+        html, body, [class*="css"] { font-family: "Microsoft JhengHei", sans-serif !important; }
+        [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
 
-    st.write("") # 留白
-    
-    # 5. 送出按鈕
-    if st.button("✅ 確認登記並推走設備", use_container_width=True):
-        if not target_unit:
-            st.warning("請選擇或輸入前往單位！")
-        else:
-            now = datetime.now().strftime("%Y-%m-%d %H:%M")
-            new_record = {"時間": now, "身分": role, "姓名": name, "單位": target_unit, "部位": part}
-            st.session_state.records.insert(0, new_record) # 新紀錄在最上面
-            st.session_state.is_away = True
-            st.session_state.last_user = name
-            st.balloons()
-            st.success(f"登記成功！設備已由 {name} 推往 {target_unit}")
+        /* 下拉選單黑框加粗 */
+        div[data-baseweb="select"] > div {
+            border: 2px solid #000000 !important;
+            border-radius: 10px !important;
+        }
 
-    # 6. 歸還按鈕
-    if st.session_state.is_away:
-        if st.button("🔄 設備已歸還 (回位)", type="primary", use_container_width=True):
-            st.session_state.is_away = False
-            st.rerun()
+        /* 儀表板卡片設計 */
+        .info-card {
+            border-radius: 15px; padding: 25px; text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 10px 0px;
+        }
+        .status-blue { background-color: #DBEAFE; border: 2px solid #3B82F6; color: #1E3A8A; }
+        .status-red { background-color: #FEE2E2; border: 2px solid #EF4444; color: #7F1D1D; }
+        </style>
+    """, unsafe_allow_html=True)
 
-st.divider()
+    st.markdown('<h1 style="text-align:center; font-weight:900;">🏥 內科超音波登記站</h1>', unsafe_allow_html=True)
 
-# --- 歷史紀錄區 ---
-st.subheader("📋 最近登記紀錄")
-if st.session_state.records:
-    df = pd.DataFrame(st.session_state.records).head(5)
-    st.table(df) # 顯示最近五筆
-else:
-    st.info("目前尚無登記紀錄")
+    # --- 借出邏輯 ---
+    if current_status == "可借用":
+        st.success("### ✅ 設備目前在位 (可登記)")
+        role = st.radio("1. 登記身分", ["醫師", "專科護理師"], horizontal=True)
+
+        with st.form("borrow_form", clear_on_submit=False):
+            user = st.selectbox("2. 使用人姓名", DOCTORS if role == "醫師" else NPS)
+            loc = st.selectbox("3. 前往單位", ["請選擇單位..."] + UNIT_LIST)
+            part = st.selectbox("4. 使用部位", BODY_PARTS)
+            
+            # 亮藍色登記按鈕
+            submit = st.form_submit_button("✅ 登記並推走設備", use_container_width=True)
+            
+            if submit:
+                if loc == "請選擇單位...":
+                    st.error("⚠️ 請務必選擇目的地單位")
+                else:
+                    new_rec = {"狀態": "借出", "職稱": role, "使用人": user, "使用時間": get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S"), "使用部位": part, "目前位置": loc, "歸還人": "", "歸還時間": "", "持續時間(分)": 0}
+                    df_latest = load_data_fresh()
+                    df_latest = pd.concat([df_latest, pd.DataFrame([new_rec])], ignore_index=True)
+                    save_data(df_latest)
+                    
+                    # --- 👌 OK手勢特效 ---
+                    st.toast(f"👌 {user} 醫師登記成功！設備前往 {loc}", icon="👌")
+                    st.rerun()
+
+    # --- 歸還邏輯 ---
+    else:
+        last_row = df.iloc[-1]
+        st.error(f"### ⚠️ 設備目前由 {last_row['使用人']} 使用中")
+        
+        # 視覺卡片呈現目前狀態
+        st.markdown(f"""
+            <div class="info-card status-red">
+                <span style="font-size: 20px; font-weight: 900;">📍 目前位置：{last_row['目前位置']}</span><br>
+                <span style="font-size: 16px; opacity: 0.8;">🕒 借出時間：{last_row['使用時間']}</span>
+            </div>
+        """, unsafe_allow_html=True)
+
+        with st.form("return_form"):
+            st.write("🔧 歸還確認：")
+            check = st.checkbox("探頭已清潔 / 線材已收納 / 功能正常")
+            
+            # 亮紅色歸還按鈕
+            if st.form_submit_button("📦 確認歸還回位", use_container_width=True):
+                if not check:
+                    st.warning("⚠️ 請先勾選清潔與收納確認")
+                else:
+                    now = get_taiwan_time()
+                    start_t = datetime.strptime(str(last_row['使用時間']), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
+                    dur = round((now - start_t).total_seconds() / 60, 1)
+                    
+                    df_latest = load_data_fresh()
+                    idx = df_latest.index[-1]
+                    df_latest.at[idx, "狀態"] = "歸還"
+                    df_latest.at[idx, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
+                    df_latest.at[idx, "持續時間(分)"] = dur
+                    save_data(df_latest)
+                    
+                    # --- 👍 讚手勢特效 ---
+                    st.toast("👍 歸還成功！感謝您的維護與收納。", icon="👍")
+                    st.rerun()
+
+    # --- 歷史紀錄區 ---
+    st.write("---")
+    with st.expander("📊 查看紀錄與下載備份"):
+        if not df.empty:
+            st.dataframe(df.sort_index(ascending=False), use_container_width=True)
+            csv = df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
+            st.download_button("📥 下載目前 CSV 紀錄", csv, "ultrasound_log.csv", "text/csv")
+
+if __name__ == "__main__":
+    main()
 
 # --- 頁尾資訊 ---
 st.caption("備註：本系統僅供內部設備追蹤使用。")
