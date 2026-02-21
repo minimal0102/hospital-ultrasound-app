@@ -4,12 +4,11 @@ import pandas as pd
 from datetime import datetime, timedelta, timezone
 
 # ==========================================
-# 1. 核心雲端連線與常數設定
+# 1. 核心雲端連線設定
 # ==========================================
-# 自動讀取 Secrets 中的 [connections.gsheets] 設定
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# 你的 Google 試算表正確網址
+# 這是你剛才提供的正確試算表網址
 GSHEET_URL = "https://docs.google.com/spreadsheets/d/1u8KVq46vpgYh9mIdtsVFGvRynOE_hiGbTNIgnr6mrv4/edit"
 
 DOCTORS = ["朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", "石振昌", "王志弘", "鄭穆良", "蔡均埏", "楊振杰", "趙令瑞", "許智凱", "林純全", "孫宏傑", "繆偉傑", "陳翌真", "卓俊宏", "林斈府", "葉俊麟", "莊永鑣", "李坤峰", "何承恩", "沈治華", "PGY醫師"]
@@ -22,15 +21,13 @@ def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def load_data():
-    """從 Google Sheets 讀取資料"""
-    # 這裡確保縮進正確，對應你之前的 IndentationError
+    """從 Google Sheets 讀取資料 (已修正縮進確保無 IndentationError)"""
     try:
-        # 指定讀取 Sheet1 工作表，ttl=0 確保抓取最新資料
+        # 讀取名為 'Sheet1' 的分頁，ttl=0 確保抓取即時資料
         return conn.read(spreadsheet=GSHEET_URL, worksheet="Sheet1", ttl=0)
     except Exception as e:
-        # 如果讀取失敗，會在介面上顯示原因
-        st.error(f"❌ 讀取失敗。原因可能是工作表標籤名稱不是 'Sheet1' 或金鑰失效。")
-        st.info(f"技術錯誤訊息: {e}")
+        st.error(f"❌ 讀取失敗。請確認試算表下方的標籤名稱是否為 'Sheet1'。")
+        st.info(f"錯誤訊息: {e}")
         return pd.DataFrame()
 
 # ==========================================
@@ -42,7 +39,7 @@ def main():
     # 1. 讀取雲端資料
     df = load_data()
     
-    # 如果表格是空的，建立基本欄位避免崩潰
+    # 若表格為空，建立基本欄位
     if df.empty:
         df = pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
 
@@ -51,21 +48,16 @@ def main():
     last_row = None
     if not df.empty:
         df['狀態'] = df['狀態'].astype(str).str.strip()
-        # 檢查最後一筆是否為「借出」狀態
         if (df['狀態'] == "借出").any():
             current_status = "使用中"
             last_row = df[df['狀態'] == "借出"].iloc[-1]
 
-    # --- 3. CSS 樣式 (黑框選單、阻擋手機鍵盤、卡片美化) ---
+    # --- 3. CSS 樣式 (黑框選單與卡片美化) ---
     st.markdown("""
         <style>
         html, body, [class*="css"] { font-family: "Microsoft JhengHei", sans-serif !important; }
         [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
-        /* 下拉選單黑框 */
         div[data-baseweb="select"] > div { border: 2px solid #000000 !important; border-radius: 10px !important; }
-        /* 手機鍵盤阻擋樣式 */
-        div[data-baseweb="select"] input { inputmode: none !important; caret-color: transparent !important; }
-        /* 使用中卡片樣式 */
         .info-card { border-radius: 15px; padding: 25px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 10px 0px; background-color: #FEE2E2; border: 2px solid #EF4444; }
         </style>
     """, unsafe_allow_html=True)
@@ -83,19 +75,16 @@ def main():
         """, unsafe_allow_html=True)
 
         with st.form("return_form"):
-            st.write("🔧 歸還確認：")
             check = st.checkbox("探頭已清潔 / 線材已收納 / 功能正常")
             if st.form_submit_button("📦 確認歸還回位", use_container_width=True):
                 if not check:
                     st.warning("⚠️ 請先勾選確認項目")
                 else:
                     now = get_taiwan_time()
-                    # 找出最後一筆借出的索引並更新
                     target_idx = df[df['狀態'] == "借出"].index[-1]
                     df.at[target_idx, "狀態"] = "歸還"
                     df.at[target_idx, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
                     
-                    # 計算持續時間
                     try:
                         start_t = datetime.strptime(str(last_row['使用時間']), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
                         df.at[target_idx, "持續時間(分)"] = round((now - start_t).total_seconds() / 60, 1)
