@@ -19,9 +19,16 @@ def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def load_data():
-    """從 Google Sheets 讀取資料，ttl=0 確保不快取"""
-    # 請確認試算表左下角標籤名稱為 "Sheet1"
-    return conn.read(worksheet="Sheet1", ttl=0)
+    def load_data():
+    # 獲取所有工作表名稱，看看程式到底抓到什麼
+    spreadsheet_url = "https://docs.google.com/spreadsheets/d/1u8KVq46vpgYh9mIdtsVFGvRynOE_hiGbTNIgnr6mrv4/edit"
+    try:
+        # 這裡會印出雲端上所有的標籤名稱
+        st.info(f"偵測到工作表標籤有：{conn.list_sheets(spreadsheet=spreadsheet_url)}")
+        return conn.read(worksheet="Sheet1", ttl=0)
+    except Exception as e:
+        st.error(f"連線細節錯誤: {e}")
+        raise e
 
 # ==========================================
 # 2. 主程式介面
