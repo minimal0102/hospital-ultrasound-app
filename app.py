@@ -24,12 +24,14 @@ def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def load_data_fresh():
-    """從 Google Sheets 讀取最新資料"""
+    """強制從雲端讀取並修復標題空格"""
     try:
-        # 讀取 Sheet1，ttl=0 確保不快取，直接抓最新的
-        return conn.read(spreadsheet=GSHEET_URL, worksheet="Sheet1", ttl=0)
+        df = conn.read(spreadsheet=GSHEET_URL, worksheet="Sheet1", ttl=0)
+        if not df.empty:
+            # ✨ 新增這行：自動刪除試算表標題裡多出來的空格
+            df.columns = df.columns.str.strip()
+        return df
     except Exception as e:
-        # 當還沒有資料時，建立一個空的 DataFrame
         return pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
 
 def save_data(df):
@@ -102,7 +104,17 @@ def main():
                 if loc == "請選擇單位...":
                     st.error("⚠️ 請務必選擇目的地單位")
                 else:
-                    new_rec = {"狀態": "借出", "職稱": role, "使用人": user, "使用時間": get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S"), "使用部位": part, "目前位置": loc, "歸還人": "", "歸還時間": "", "持續時間(分)": 0}
+                    new_rec = pd.DataFrame([{
+    "狀態": "借出", 
+    "職稱": role, 
+    "使用人": user, 
+    "使用時間": now_str, 
+    "使用部位": part, 
+    "目前位置": loc, 
+    "歸還人": "", 
+    "歸還時間": "", 
+    "持續時間(分)": 0
+}])
                     # 雲端更新邏輯
                     df_latest = load_data_fresh()
                     df_updated = pd.concat([df_latest, pd.DataFrame([new_rec])], ignore_index=True)
