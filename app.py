@@ -50,23 +50,29 @@ def main():
             current_status = "使用中"
             last_idx = df.index[-1]
 
-    # --- CSS 樣式區 (包含下拉向下、黑框、長方形按鈕) ---
+    # --- CSS 樣式 (延用黑框與手機優化) ---
     st.markdown("""
         <style>
         html, body, [class*="css"] { font-family: "Microsoft JhengHei", sans-serif !important; }
         [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
 
-        /* 下拉選單黑框線 */
+        /* 下拉選單黑框加粗 */
         div[data-baseweb="select"] > div {
-            border: 1.5px solid #000000 !important;
-            border-radius: 8px !important;
+            border: 2px solid #000000 !important;
+            border-radius: 10px !important;
         }
 
-        /* 強制下拉選單向下開啟 */
-        div[data-baseweb="popover"] {
-            margin-top: 4px !important;
-            top: auto !important;
+        /* 儀表板卡片設計 */
+        .info-card {
+            border-radius: 15px; padding: 25px; text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 10px 0px;
         }
+        .status-blue { background-color: #DBEAFE; border: 2px solid #3B82F6; color: #1E3A8A; }
+        .status-red { background-color: #FEE2E2; border: 2px solid #EF4444; color: #7F1D1D; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<h1 style="text-align:center; font-weight:900;">🏥 內科超音波登記站</h1>', unsafe_allow_html=True)
 
         /* 阻擋手機鍵盤 */
         div[data-baseweb="select"] input {
@@ -74,39 +80,7 @@ def main():
             caret-color: transparent !important;
         }
 
-        /* 資訊儀表板 */
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0px; }
-        .info-card {
-            border-radius: 20px; padding: 30px 10px; text-align: center;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1); color: #000 !important;
-        }
-        .status-blue { background-color: #60A5FA !important; }
-        .status-red { background-color: #F87171 !important; }
-        .card-label { font-size: 18px; font-weight: 900; opacity: 0.8; }
-        .card-value { font-size: 42px; font-weight: 900; display: block; margin-top: 5px; }
-
-        /* 亮藍/亮紅 長方形按鈕 */
-        .borrow-section div[data-testid="stFormSubmitButton"] > button {
-            width: 100% !important; height: 75px !important;
-            background-color: #60A5FA !important; color: #000 !important;
-            border-radius: 12px !important; font-size: 24px !important;
-            font-weight: 900 !important; border: none !important;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
-        }
-        .return-section div[data-testid="stFormSubmitButton"] > button {
-            width: 100% !important; height: 75px !important;
-            background-color: #F87171 !important; color: #000 !important;
-            border-radius: 12px !important; font-size: 24px !important;
-            font-weight: 900 !important; border: none !important;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
-        }
-        div[data-testid="stFormSubmitButton"] button p {
-            color: #000 !important; font-size: 24px !important; font-weight: 900 !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown('<h1 style="text-align:center; font-weight:900;">🏥 內科超音波登記站</h1>', unsafe_allow_html=True)
+       
 
     if current_status == "可借用":
         st.success("### ✅ 設備在位 (可登記使用)")
