@@ -73,13 +73,6 @@ def main():
     """, unsafe_allow_html=True)
 
     st.markdown('<h1 style="text-align:center; font-weight:900;">🏥 內科超音波登記站</h1>', unsafe_allow_html=True)
-
-        /* 阻擋手機鍵盤 */
-        div[data-baseweb="select"] input {
-            inputmode: none !important;
-            caret-color: transparent !important;
-        }
-
        
 
     if current_status == "可借用":
