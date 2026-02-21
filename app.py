@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime, timedelta, timezone
 
 # ==========================================
-# 1. 核心雲端連線設定
+# 1. 核心雲端連線與常數設定
 # ==========================================
 conn = st.connection("gsheets", type=GSheetsConnection)
 
@@ -20,13 +20,13 @@ def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def load_data():
-    """從 Google Sheets 讀取資料 (已修正縮進與結構)"""
+    """從 Google Sheets 讀取資料 (已修正縮進與語法結構)"""
     try:
         # 嘗試讀取網址中名為 Sheet1 的分頁
         return conn.read(spreadsheet=GSHEET_URL, worksheet="Sheet1", ttl=0)
     except Exception as e:
         # 如果失敗，顯示提示但不崩潰
-        st.error("❌ 讀取失敗。請確認 Secrets 中的網址正確，且試算表標籤名稱為 'Sheet1'。")
+        st.error("❌ 讀取失敗。請確認 Secrets 中的私鑰格式正確（建議使用三引號）。")
         st.info(f"技術錯誤訊息: {e}")
         return pd.DataFrame()
 
@@ -38,7 +38,7 @@ def main():
 
     df = load_data()
     
-    # 判斷目前設備狀態
+    # 判斷設備狀態
     current_status = "可借用"
     last_row = None
     if not df.empty:
