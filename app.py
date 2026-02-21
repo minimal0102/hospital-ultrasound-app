@@ -19,12 +19,11 @@ def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def load_data_fresh():
-    """強制從硬碟讀取最新資料，避免多裝置快取錯誤"""
+    """強制從硬碟讀取最新資料"""
     if not os.path.exists(FILE_NAME):
         df = pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
         df.to_csv(FILE_NAME, index=False, encoding='utf-8-sig')
         return df
-    # 讀取時不使用快取
     return pd.read_csv(FILE_NAME, encoding='utf-8-sig')
 
 def save_data(df):
@@ -36,73 +35,32 @@ def save_data(df):
 def main():
     st.set_page_config(page_title="內科超音波登記站", page_icon="🏥", layout="centered")
 
-    # 【重要】每次重整畫面都重新讀取檔案，解決多人連線 Bug
+    # 讀取最新資料
     df = load_data_fresh()
     
-    # 判斷狀態邏輯優化：確保精確比對字串並去除空白
     current_status = "可借用"
-    last_idx = None
-    
     if not df.empty:
         last_record = df.iloc[-1]
-        # 使用 strip() 避免隱形空白字元造成判斷錯誤
         if str(last_record["狀態"]).strip() == "借出":
             current_status = "使用中"
-            last_idx = df.index[-1]
 
-    # --- CSS 樣式區 (包含下拉向下、黑框、長方形按鈕) ---
+    # --- CSS 樣式區 ---
     st.markdown("""
         <style>
         html, body, [class*="css"] { font-family: "Microsoft JhengHei", sans-serif !important; }
         [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
-
-        /* 下拉選單黑框線 */
+        
         div[data-baseweb="select"] > div {
             border: 1.5px solid #000000 !important;
             border-radius: 8px !important;
         }
-
-        /* 強制下拉選單向下開啟 */
-        div[data-baseweb="popover"] {
-            margin-top: 4px !important;
-            top: auto !important;
-        }
-
-        /* 阻擋手機鍵盤 */
-        div[data-baseweb="select"] input {
-            inputmode: none !important;
-            caret-color: transparent !important;
-        }
-
-        /* 資訊儀表板 */
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0px; }
+        
         .info-card {
             border-radius: 20px; padding: 30px 10px; text-align: center;
             box-shadow: 0 8px 16px rgba(0,0,0,0.1); color: #000 !important;
         }
         .status-blue { background-color: #60A5FA !important; }
         .status-red { background-color: #F87171 !important; }
-        .card-label { font-size: 18px; font-weight: 900; opacity: 0.8; }
-        .card-value { font-size: 42px; font-weight: 900; display: block; margin-top: 5px; }
-
-        /* 亮藍/亮紅 長方形按鈕 */
-        .borrow-section div[data-testid="stFormSubmitButton"] > button {
-            width: 100% !important; height: 75px !important;
-            background-color: #60A5FA !important; color: #000 !important;
-            border-radius: 12px !important; font-size: 24px !important;
-            font-weight: 900 !important; border: none !important;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
-        }
-        .return-section div[data-testid="stFormSubmitButton"] > button {
-            width: 100% !important; height: 75px !important;
-            background-color: #F87171 !important; color: #000 !important;
-            border-radius: 12px !important; font-size: 24px !important;
-            font-weight: 900 !important; border: none !important;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
-        }
-        div[data-testid="stFormSubmitButton"] button p {
-            color: #000 !important; font-size: 24px !important; font-weight: 900 !important;
-        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -112,69 +70,74 @@ def main():
         st.success("### ✅ 設備在位 (可登記使用)")
         role = st.radio("1. 登記身分", ["醫師", "專科護理師"], horizontal=True)
         
-        st.markdown('<div class="borrow-section">', unsafe_allow_html=True)
         with st.form("borrow_form"):
             user = st.selectbox("2. 使用人姓名", DOCTORS if role == "醫師" else NPS)
             loc = st.selectbox("3. 前往單位", ["請選擇單位..."] + UNIT_LIST)
             part = st.selectbox("4. 使用部位", BODY_PARTS)
-            if st.form_submit_button("✅ 登記推走設備"):
+            
+            if st.form_submit_button("✅ 登記推走設備", use_container_width=True):
                 if loc == "請選擇單位...":
                     st.error("⚠️ 請務必選擇目的地單位")
                 else:
                     new_rec = {"狀態": "借出", "職稱": role, "使用人": user, "使用時間": get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S"), "使用部位": part, "目前位置": loc, "歸還人": "", "歸還時間": "", "持續時間(分)": 0}
-                    # 再次重新讀取以確保寫入時是基於最新版本 (解決併發寫入問題)
                     df_latest = load_data_fresh()
                     df_latest = pd.concat([df_latest, pd.DataFrame([new_rec])], ignore_index=True)
                     save_data(df_latest)
+                    
+                    # --- 👌 OK手勢回饋 ---
+                    st.toast(f"👌 {user} 登記成功！前往 {loc}", icon="👌")
                     st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     else:
         last_row = df.iloc[-1]
         st.error("### ⚠️ 設備目前使用中")
         
-        # 資訊儀表板
         st.markdown(f"""
-            <div class="dashboard-grid">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0px;">
                 <div class="info-card status-blue">
-                    <span class="card-label">👤 使用人</span>
-                    <span class="card-value">{last_row['使用人']}</span>
+                    <span style="font-size: 18px; font-weight: 900; opacity: 0.8;">👤 使用人</span><br>
+                    <span style="font-size: 36px; font-weight: 900;">{last_row['使用人']}</span>
                 </div>
                 <div class="info-card status-red">
-                    <span class="card-label">📍 目前位置</span>
-                    <span class="card-value">{last_row['目前位置']}</span>
+                    <span style="font-size: 18px; font-weight: 900; opacity: 0.8;">📍 目前位置</span><br>
+                    <span style="font-size: 36px; font-weight: 900;">{last_row['目前位置']}</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-        st.markdown('<div class="return-section">', unsafe_allow_html=True)
         with st.form("return_form"):
             st.info(f"🕒 借出時間：{last_row['使用時間']}")
             check = st.checkbox("探頭清潔 / 線材收納 / 功能正常")
-            if st.form_submit_button("📦 歸還設備"):
+            if st.form_submit_button("📦 歸還設備", use_container_width=True):
                 if not check:
                     st.warning("⚠️ 請先勾選確認項目")
                 else:
                     now = get_taiwan_time()
-                    start_t = datetime.strptime(last_row['使用時間'], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
+                    start_t = datetime.strptime(str(last_row['使用時間']), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
                     dur = round((now - start_t).total_seconds() / 60, 1)
                     
-                    # 歸還時也讀取最新資料確保寫回正確行數
                     df_latest = load_data_fresh()
-                    last_idx_fresh = df_latest.index[-1]
-                    df_latest.at[last_idx_fresh, "狀態"] = "歸還"
-                    df_latest.at[last_idx_fresh, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
-                    df_latest.at[last_idx_fresh, "持續時間(分)"] = dur
+                    idx = df_latest.index[-1]
+                    df_latest.at[idx, "狀態"] = "歸還"
+                    df_latest.at[idx, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
+                    df_latest.at[idx, "持續時間(分)"] = dur
                     save_data(df_latest)
+                    
+                    # --- 👍 讚手勢回饋 ---
+                    st.toast("👍 歸還成功！感謝您的收納與維護。", icon="👍")
                     st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
+    # --- 紀錄區 (修正縮進問題) ---
     if not df.empty:
+        st.write("---")
         with st.expander("📊 查看紀錄"):
             st.dataframe(df.sort_index(ascending=False), use_container_width=True)
+            # 定義下載用的 CSV 資料
+            csv_data = df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8-sig')
+            st.download_button("📥 下載目前 CSV 紀錄", csv_data, "ultrasound_log.csv", "text/csv")
+
+    # 頁尾資訊
+    st.caption("備註：本系統僅供內部設備追蹤使用。")
+
 if __name__ == "__main__":
     main()
-            st.download_button("📥 下載目前 CSV 紀錄", csv, "ultrasound_log.csv", "text/csv")
-
-# --- 頁尾資訊 ---
-st.caption("備註：本系統僅供內部設備追蹤使用。")
