@@ -81,7 +81,7 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<h2 style="text-align:center; font-weight:900; color:#1E293B; margin-bottom: 20px;">🏥 內科超音波登記站</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 style="text-align:center; font-weight:900; color:#1E293B; margin-bottom: 20px;">🖥️ 內科超音波登記站</h2>', unsafe_allow_html=True)
 
     if current_status == "可借用":
         # 動態注入：借用狀態專屬的藍色按鈕樣式
@@ -107,7 +107,7 @@ def main():
                 st.markdown("##### 📝 填寫借用資訊")
                 user_select = st.selectbox("2. 使用人姓名", DOCTORS if role == "醫師" else NPS)
                 
-                custom_user = st.text_input("2-1. 補充姓名 (⚠️ 上方選「自行填入」時才需填寫，其餘請留空)", placeholder="請輸入姓名...")
+                custom_user = st.text_input("2-1. 補充姓名 (⚠️ 上方選「其他」時才需填寫)", placeholder="請輸入姓名...")
                 
                 col1, col2 = st.columns(2)
                 with col1:
@@ -118,9 +118,9 @@ def main():
                 st.markdown("<br>", unsafe_allow_html=True) 
                 
                 if st.form_submit_button("登記推走設備"):
-                    final_user = custom_user.strip() if user_select == "_____(自行填入)" else user_select
+                    final_user = custom_user.strip() if user_select == "其他" else user_select
                     
-                    if user_select == "_____(自行填入)" and not final_user:
+                    if user_select == "其他" and not final_user:
                         st.error("⚠️ 請在「2-1. 補充姓名」欄位輸入醫師姓名")
                     elif loc == "請選擇...":
                         st.error("⚠️ 請務必選擇目的地單位")
