@@ -4,11 +4,11 @@ import pandas as pd
 from datetime import datetime, timedelta, timezone
 
 # ==========================================
-# 1. 資料與設定 (完全保留你的原始設定)
+# 1. 資料與設定 
 # ==========================================
 GSHEET_URL = "https://docs.google.com/spreadsheets/d/1u8KVq46vpgYh9mIdtsVFGvRynOE_hiGbTNIgnr6mrv4/edit"
 
-DOCTORS = ["朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", "石振昌", "王志弘", "鄭穆良", "蔡均埏", "楊振杰", "趙令瑞", "許智凱", "林純全", "孫宏傑", "繆偉傑", "陳翌真", "卓俊宏", "林斈府", "葉俊麟", "莊永鑣", "李坤峰", "何承恩", "沈治華", "PGY醫師"]
+DOCTORS = ["朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", "石振昌", "王志弘", "鄭穆良", "蔡均埏", "楊振杰", "趙令瑞", "許智凱", "林純全", "孫宏傑", "繆偉傑", "陳翌真", "卓俊宏", "林斈府", "葉俊麟", "莊永鑣", "李坤峰", "何承恩", "沈治華", "PGY醫師", "_____(自行填入)"]
 NPS = ["侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛琪"]
 UNIT_LIST = ["3A", "3B", "5A", "5B", "6A", "6B", "7A", "7B", "RCC", "6D", "6F", "檢查室"]
 BODY_PARTS = ["胸腔 (Thoracic)", "心臟 (Cardiac)", "腹部 (Abdominal)", "膀胱 (Bladder)", "下肢 (Lower Limb)", "靜脈留置 (IV insertion)"]
@@ -17,37 +17,33 @@ BODY_PARTS = ["胸腔 (Thoracic)", "心臟 (Cardiac)", "腹部 (Abdominal)", "�
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 # ==========================================
-# 2. 核心功能 (修正連線與時間邏輯)
+# 2. 核心功能 
 # ==========================================
 def get_taiwan_time():
     return datetime.now(timezone(timedelta(hours=8)))
 
 def load_data_fresh():
-    """從雲端讀取資料並自動修復標題空格"""
     try:
-        # 讀取 Sheet1，ttl=0 確保抓到最新資料
         df = conn.read(spreadsheet=GSHEET_URL, worksheet="Sheet1", ttl=0)
         if not df.empty:
-            df.columns = df.columns.str.strip() # 自動刪除標題空格防止 None 問題
+            df.columns = df.columns.str.strip()
         return df
     except Exception as e:
-        # 如果讀不到資料，建立空的結構
         return pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
 
 def save_data(df):
-    """將更新後的資料推送到 Google Sheets"""
     conn.update(spreadsheet=GSHEET_URL, worksheet="Sheet1", data=df)
 
 # ==========================================
-# 3. 主程式介面 (保留你原始的所有 CSS 與 UI)
+# 3. 主程式介面
 # ==========================================
 def main():
+    # 調整為 centered，搭配 CSS 控制最大寬度
     st.set_page_config(page_title="內科超音波登記站", page_icon="🏥", layout="centered")
 
-    # 讀取雲端最新資料
     df = load_data_fresh()
     
-    # 判斷狀態 (使用 strip() 防止判斷失誤)
+    # 判斷設備狀態 (依據最新一筆總資料，不受圖表月份過濾影響)
     current_status = "可借用"
     last_idx = None
     if not df.empty:
@@ -56,104 +52,149 @@ def main():
             current_status = "使用中"
             last_idx = df.index[-1]
 
-    # --- 這裡是你原始的 CSS 樣式區，完全沒動 ---
+    # ✨ 全新現代化 CSS 樣式
     st.markdown("""
         <style>
-        html, body, [class*="css"] { font-family: "Microsoft JhengHei", sans-serif !important; }
-        [data-testid="stAppViewContainer"] { background-color: #F2F2F7 !important; }
-        div[data-baseweb="select"] > div { border: 1.5px solid #000000 !important; border-radius: 8px !important; }
-        div[data-baseweb="popover"] { margin-top: 4px !important; top: auto !important; }
-        div[data-baseweb="select"] input { inputmode: none !important; caret-color: transparent !important; }
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0px; }
-        .info-card { border-radius: 20px; padding: 30px 10px; text-align: center; box-shadow: 0 8px 16px rgba(0,0,0,0.1); color: #000 !important; }
-        .status-blue { background-color: #60A5FA !important; }
-        .status-red { background-color: #F87171 !important; }
-        .card-label { font-size: 18px; font-weight: 900; opacity: 0.8; }
-        .card-value { font-size: 42px; font-weight: 900; display: block; margin-top: 5px; }
-        .borrow-section div[data-testid="stFormSubmitButton"] > button {
-            width: 100% !important; height: 75px !important;
-            background-color: #60A5FA !important; color: #000 !important;
-            border-radius: 12px !important; font-size: 24px !important;
-            font-weight: 900 !important; border: none !important;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+        /* 基礎字體與背景 */
+        html, body, [class*="css"] { font-family: "Microsoft JhengHei", "PingFang TC", sans-serif !important; }
+        [data-testid="stAppViewContainer"] { background-color: #F8FAFC !important; }
+        
+        /* 縮窄內容區塊，模仿手機 App 視覺感 */
+        .block-container { max-width: 650px !important; padding-top: 2rem !important; }
+        
+        /* 隱藏原生表單邊框，使畫面更乾淨 */
+        div[data-testid="stForm"] { border: none !important; padding: 0 !important; background-color: transparent !important; }
+        
+        /* 輸入框樣式優化 */
+        div[data-baseweb="select"] > div, input { border-radius: 10px !important; border: 1.5px solid #E2E8F0 !important; }
+        div[data-baseweb="select"] > div:focus-within, input:focus { border-color: #3B82F6 !important; box-shadow: 0 0 0 1px #3B82F6 !important; }
+        
+        /* 客製化狀態橫幅 */
+        .status-banner { padding: 20px; border-radius: 16px; text-align: center; color: white; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .banner-available { background: linear-gradient(135deg, #10B981, #059669); }
+        .banner-in-use { background: linear-gradient(135deg, #EF4444, #DC2626); }
+        .banner-title { font-size: 28px; font-weight: 900; margin: 0; letter-spacing: 1px;}
+        
+        /* 客製化資訊卡片 */
+        .info-card-container { display: flex; gap: 15px; margin-bottom: 25px; }
+        .info-card { flex: 1; background: white; padding: 20px 15px; border-radius: 16px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #F1F5F9; }
+        .info-label { color: #64748B; font-size: 14px; font-weight: bold; margin-bottom: 5px; display: block; }
+        .info-value { color: #0F172A; font-size: 26px; font-weight: 900; margin: 0; }
+        
+        /* 按鈕樣式大升級 */
+        .borrow-btn div[data-testid="stFormSubmitButton"] > button {
+            width: 100% !important; height: 70px !important;
+            background: linear-gradient(135deg, #3B82F6, #2563EB) !important; color: white !important;
+            border-radius: 16px !important; border: none !important;
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3) !important; transition: all 0.2s ease !important;
         }
-        .return-section div[data-testid="stFormSubmitButton"] > button {
-            width: 100% !important; height: 75px !important;
-            background-color: #F87171 !important; color: #000 !important;
-            border-radius: 12px !important; font-size: 24px !important;
-            font-weight: 900 !important; border: none !important;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important;
+        .return-btn div[data-testid="stFormSubmitButton"] > button {
+            width: 100% !important; height: 70px !important;
+            background: linear-gradient(135deg, #F59E0B, #D97706) !important; color: white !important;
+            border-radius: 16px !important; border: none !important;
+            box-shadow: 0 6px 15px rgba(245, 158, 11, 0.3) !important; transition: all 0.2s ease !important;
         }
-        div[data-testid="stFormSubmitButton"] button p { color: #000 !important; font-size: 24px !important; font-weight: 900 !important; }
+        /* 按鈕 Hover 動畫 */
+        div[data-testid="stFormSubmitButton"] > button:hover { transform: translateY(-3px) !important; filter: brightness(1.1); }
+        div[data-testid="stFormSubmitButton"] button p { font-size: 22px !important; font-weight: 900 !important; color: white !important;}
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown('<h1 style="text-align:center; font-weight:900;">🏥 內科超音波登記站</h1>', unsafe_allow_html=True)
+    st.markdown('<h2 style="text-align:center; font-weight:900; color:#1E293B; margin-bottom: 20px;">🏥 內科超音波登記站</h2>', unsafe_allow_html=True)
 
     if current_status == "可借用":
-        st.success("### ✅ 設備在位 (可登記使用)")
-        role = st.radio("1. 登記身分", ["醫師", "專科護理師"], horizontal=True)
+        st.markdown("""
+            <div class="status-banner banner-available">
+                <p class="banner-title">✅ 設備在位 (可借用)</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        with st.container():
+            role = st.radio("1. 登記身分", ["醫師", "專科護理師"], horizontal=True)
 
-        st.markdown('<div class="borrow-section">', unsafe_allow_html=True)
-        with st.form("borrow_form"):
-            user = st.selectbox("2. 使用人姓名", DOCTORS if role == "醫師" else NPS)
-            loc = st.selectbox("3. 前往單位", ["請選擇單位..."] + UNIT_LIST)
-            part = st.selectbox("4. 使用部位", BODY_PARTS)
-            if st.form_submit_button("✅ 登記推走設備"):
-                if loc == "請選擇單位...":
-                    st.error("⚠️ 請務必選擇目的地單位")
-                else:
-                    # ✨ 修正：先定義時間字串，解決 NameError
-                    now_str = get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S")
+            st.markdown('<div class="borrow-btn">', unsafe_allow_html=True)
+            with st.form("borrow_form"):
+                st.markdown("##### 📝 填寫借用資訊")
+                user_select = st.selectbox("2. 使用人姓名", DOCTORS if role == "醫師" else NPS)
+                
+                custom_user = st.text_input("2-1. 補充姓名 (⚠️ 上方選「自行填入」時才需填寫，其餘請留空)", placeholder="請輸入姓名...")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    loc = st.selectbox("3. 前往單位", ["請選擇..."] + UNIT_LIST)
+                with col2:
+                    part = st.selectbox("4. 使用部位", BODY_PARTS)
+                
+                st.markdown("<br>", unsafe_allow_html=True) 
+                
+                if st.form_submit_button("登記推走設備 🚀"):
+                    final_user = custom_user.strip() if user_select == "_____(自行填入)" else user_select
                     
-                    new_rec = pd.DataFrame([{
-                        "狀態": "借出", "職稱": role, "使用人": user, 
-                        "使用時間": now_str, "使用部位": part, "目前位置": loc, 
-                        "歸還人": "", "歸還時間": "", "持續時間(分)": 0
-                    }])
-                    
-                    # 讀取最新並寫入
-                    df_latest = load_data_fresh()
-                    df_updated = pd.concat([df_latest, new_rec], ignore_index=True)
-                    save_data(df_updated)
-                    st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+                    if user_select == "_____(自行填入)" and not final_user:
+                        st.error("⚠️ 請在「2-1. 補充姓名」欄位輸入醫師姓名")
+                    elif loc == "請選擇...":
+                        st.error("⚠️ 請務必選擇目的地單位")
+                    else:
+                        now_str = get_taiwan_time().strftime("%Y-%m-%d %H:%M:%S")
+                        
+                        new_rec = pd.DataFrame([{
+                            "狀態": "借出", "職稱": role, "使用人": final_user, 
+                            "使用時間": now_str, "使用部位": part, "目前位置": loc, 
+                            "歸還人": "", "歸還時間": "", "持續時間(分)": 0
+                        }])
+                        
+                        df_latest = load_data_fresh()
+                        df_updated = pd.concat([df_latest, new_rec], ignore_index=True)
+                        save_data(df_updated)
+                        st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
     else:
         last_row = df.iloc[-1]
-        st.error("### ⚠️ 設備目前使用中")
+        
+        st.markdown("""
+            <div class="status-banner banner-in-use">
+                <p class="banner-title">⚠️ 設備使用中</p>
+            </div>
+        """, unsafe_allow_html=True)
 
-        # 資訊儀表板 (保留你的樣式)
         st.markdown(f"""
-            <div class="dashboard-grid">
-                <div class="info-card status-blue">
-                    <span class="card-label">👤 使用人</span>
-                    <span class="card-value">{last_row['使用人']}</span>
+            <div class="info-card-container">
+                <div class="info-card">
+                    <span class="info-label">👤 使用人</span>
+                    <p class="info-value">{last_row['使用人']}</p>
                 </div>
-                <div class="info-card status-red">
-                    <span class="card-label">📍 目前位置</span>
-                    <span class="card-value">{last_row['目前位置']}</span>
+                <div class="info-card">
+                    <span class="info-label">📍 目前位置</span>
+                    <p class="info-value">{last_row['目前位置']}</p>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-        st.markdown('<div class="return-section">', unsafe_allow_html=True)
+        st.markdown('<div class="return-btn">', unsafe_allow_html=True)
         with st.form("return_form"):
             st.info(f"🕒 借出時間：{last_row['使用時間']}")
-            check = st.checkbox("探頭清潔 / 線材收納 / 功能正常")
-            if st.form_submit_button("📦 歸還設備"):
+            st.markdown("##### ✅ 歸還確認清單")
+            check = st.checkbox("我確認：探頭已清潔 / 線材已收納 / 功能皆正常", value=False)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.form_submit_button("確認歸還設備 📦"):
                 if not check:
-                    st.warning("⚠️ 請先勾選確認項目")
+                    st.warning("⚠️ 請先勾選上方的確認項目")
                 else:
                     now = get_taiwan_time()
-                    # 計算持續時間
                     try:
                         start_t = datetime.strptime(str(last_row['使用時間']), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
-                        dur = round((now - start_t).total_seconds() / 60, 1)
+                        total_mins = (now - start_t).total_seconds() / 60
+                        
+                        # 時間轉換邏輯：超過 60 分鐘轉為小時
+                        if total_mins > 60:
+                            dur = f"{round(total_mins / 60, 1)}小時"
+                        else:
+                            dur = f"{round(total_mins, 1)}分鐘"
                     except:
-                        dur = 0
+                        dur = "0分鐘"
                     
-                    # 雲端歸還更新
                     df_latest = load_data_fresh()
                     if not df_latest.empty:
                         last_idx_fresh = df_latest.index[-1]
@@ -164,12 +205,44 @@ def main():
                     st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)
 
+    # ==========================================
+    # 4. 查看紀錄與統計圖表 (僅顯示當月)
+    # ==========================================
     if not df.empty:
-        with st.expander("📊 查看紀錄"):
-            # 確保標籤顯示正確
+        st.divider()
+        with st.expander("📊 查看與統計 (當月紀錄)"):
             df_display = df.copy()
             df_display.columns = df_display.columns.str.strip()
-            st.dataframe(df_display.sort_index(ascending=False), use_container_width=True)
+            
+            # 時間過濾邏輯：將字串轉為 datetime 物件，以利年份與月份比對
+            df_display['時間解析'] = pd.to_datetime(df_display['使用時間'], errors='coerce')
+            now = get_taiwan_time()
+            
+            # 建立篩選條件：只保留與目前「同年」且「同月」的資料
+            mask = (df_display['時間解析'].dt.year == now.year) & (df_display['時間解析'].dt.month == now.month)
+            df_current_month = df_display[mask].copy()
+            
+            if not df_current_month.empty:
+                st.markdown("#### 📈 當月統計圖表")
+                # 使用 columns 並排顯示兩張圖表
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("**👤 依使用人次數**")
+                    user_counts = df_current_month['使用人'].value_counts()
+                    st.bar_chart(user_counts, color="#3B82F6") # 藍色系
+                    
+                with col2:
+                    st.markdown("**📍 依使用部位次數**")
+                    part_counts = df_current_month['使用部位'].value_counts()
+                    st.bar_chart(part_counts, color="#10B981") # 綠色系
+                
+                st.markdown("#### 📋 當月詳細紀錄")
+                # 顯示前將輔助用的 '時間解析' 欄位移除
+                df_current_month = df_current_month.drop(columns=['時間解析'])
+                st.dataframe(df_current_month.sort_index(ascending=False), use_container_width=True)
+            else:
+                st.info("📅 跨月已更新：本月目前尚無使用紀錄。")
 
 if __name__ == "__main__":
     main()
