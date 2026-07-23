@@ -8,10 +8,10 @@ from datetime import datetime, timedelta, timezone
 # ==========================================
 GSHEET_URL = "https://docs.google.com/spreadsheets/d/1u8KVq46vpgYh9mIdtsVFGvRynOE_hiGbTNIgnr6mrv4/edit"
 
-DOCTORS = ["朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", "石振昌", "王志弘", "鄭穆良", "蔡均埏", "楊振杰", "趙令瑞", "許智凱", "林純全", "孫宏傑", "繆偉傑", "陳翌真", "卓俊宏", "林斈府", "葉俊麟", "莊永鑣", "李坤峰", "何承恩", "沈治華", "PGY醫師", "_____(自行填入)"]
+DOCTORS = ["朱戈靖", "王國勳", "張書軒", "陳翰興", "吳令治", "石振昌", "王志弘", "鄭穆良", "蔡均埏", "楊振杰", "趙令瑞", "許智凱", "林純全", "孫宏傑", "繆偉傑", "陳翌真", "卓俊宏", "林斈府", "葉俊麟", "莊永鑣", "李坤峰", "何承恩", "沈治華", "PGY醫師", "其他"]
 NPS = ["侯束靜", "詹美足", "林聖芬", "林忻潔", "徐志娟", "葉思瑀", "曾筑嬛", "黃嘉鈴", "蘇柔如", "劉玉涵", "林明珠", "顏辰芳", "陳雅惠", "王珠莉", "林心蓓", "金雪珍", "邱銨", "黃千盈", "許瑩瑄", "張宛琪"]
 UNIT_LIST = ["3A", "3B", "5A", "5B", "6A", "6B", "7A", "7B", "RCC", "6D", "6F", "檢查室"]
-BODY_PARTS = ["胸腔 (Thoracic)", "心臟 (Cardiac)", "腹部 (Abdominal)", "膀胱 (Bladder)", "下肢 (Lower Limb)", "靜脈留置 (IV insertion)"]
+BODY_PARTS = ["胸腔 (Thoracic)", "心臟 (Cardiac)", "腹部 (Abdominal)", "膀胱 (Bladder)", "肢體 (Extremities)", "靜脈導管置入 (Venous Catheterization)"]
 
 # 初始化雲端連線
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -29,7 +29,7 @@ def load_data_fresh():
             df.columns = df.columns.str.strip()
         return df
     except Exception as e:
-        return pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
+        return pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間"])
 
 def save_data(df):
     conn.update(spreadsheet=GSHEET_URL, worksheet="Sheet1", data=df)
@@ -38,7 +38,7 @@ def save_data(df):
 # 3. 主程式介面
 # ==========================================
 def main():
-    st.set_page_config(page_title="內科超音波登記站", page_icon="🏥", layout="centered")
+    st.set_page_config(page_title="內科超音波登記站", page_icon="🖥️", layout="centered")
 
     df = load_data_fresh()
     
