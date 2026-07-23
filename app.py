@@ -38,7 +38,7 @@ def save_data(df):
 # 3. 主程式介面
 # ==========================================
 def main():
-    st.set_page_config(page_title="內科超音波登記站", page_icon="🖥️", layout="centered")
+    st.set_page_config(page_title="內科超音波登記站", page_icon="🏥", layout="centered")
 
     df = load_data_fresh()
     
@@ -50,7 +50,7 @@ def main():
             current_status = "使用中"
             last_idx = df.index[-1]
 
-    # ✨ 修正後的共用 CSS (移除造成錯誤的外層 wrapper)
+    # ✨ CSS 樣式 (包含修復按鈕背景的設定)
     st.markdown("""
         <style>
         html, body, [class*="css"] { font-family: "Microsoft JhengHei", "PingFang TC", sans-serif !important; }
@@ -104,7 +104,7 @@ def main():
             role = st.radio("1. 登記身分", ["醫師", "專科護理師"], horizontal=True)
 
             with st.form("borrow_form"):
-                st.markdown("##### ✍️ 填寫借用資訊")
+                st.markdown("##### 📝 填寫借用資訊")
                 user_select = st.selectbox("2. 使用人姓名", DOCTORS if role == "醫師" else NPS)
                 
                 custom_user = st.text_input("2-1. 補充姓名 (⚠️ 上方選「自行填入」時才需填寫，其餘請留空)", placeholder="請輸入姓名...")
@@ -117,7 +117,7 @@ def main():
                 
                 st.markdown("<br>", unsafe_allow_html=True) 
                 
-                if st.form_submit_button("登記推走設備 🏃"):
+                if st.form_submit_button("登記推走設備"):
                     final_user = custom_user.strip() if user_select == "_____(自行填入)" else user_select
                     
                     if user_select == "_____(自行填入)" and not final_user:
@@ -176,7 +176,7 @@ def main():
             check = st.checkbox("我確認：探頭已清潔 / 線材已收納 / 功能皆正常", value=False)
             
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.form_submit_button("確認歸還設備🔙"):
+            if st.form_submit_button("確認歸還設備"):
                 if not check:
                     st.warning("⚠️ 請先勾選上方的確認項目")
                 else:
@@ -197,7 +197,11 @@ def main():
                         last_idx_fresh = df_latest.index[-1]
                         df_latest.at[last_idx_fresh, "狀態"] = "歸還"
                         df_latest.at[last_idx_fresh, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
+                        
+                        # ✨ 修復 TypeError：強制轉為字串以相容「分鐘/小時」的中文字
+                        df_latest['持續時間(分)'] = df_latest['持續時間(分)'].astype(str)
                         df_latest.at[last_idx_fresh, "持續時間(分)"] = dur
+                        
                         save_data(df_latest)
                     st.rerun()
 
@@ -206,7 +210,7 @@ def main():
     # ==========================================
     if not df.empty:
         st.divider()
-        with st.expander("📋 查看與統計 (當月紀錄)"):
+        with st.expander("📊 查看與統計 (當月紀錄)"):
             df_display = df.copy()
             df_display.columns = df_display.columns.str.strip()
             
