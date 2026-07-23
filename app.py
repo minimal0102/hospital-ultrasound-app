@@ -38,12 +38,10 @@ def save_data(df):
 # 3. 主程式介面
 # ==========================================
 def main():
-    # 調整為 centered，搭配 CSS 控制最大寬度
-    st.set_page_config(page_title="內科超音波登記站", page_icon="🏥", layout="centered")
+    st.set_page_config(page_title="內科超音波登記站", page_icon="🖥️", layout="centered")
 
     df = load_data_fresh()
     
-    # 判斷設備狀態 (依據最新一筆總資料，不受圖表月份過濾影響)
     current_status = "可借用"
     last_idx = None
     if not df.empty:
@@ -52,57 +50,50 @@ def main():
             current_status = "使用中"
             last_idx = df.index[-1]
 
-    # ✨ 全新現代化 CSS 樣式
+    # ✨ 修正後的共用 CSS (移除造成錯誤的外層 wrapper)
     st.markdown("""
         <style>
-        /* 基礎字體與背景 */
         html, body, [class*="css"] { font-family: "Microsoft JhengHei", "PingFang TC", sans-serif !important; }
         [data-testid="stAppViewContainer"] { background-color: #F8FAFC !important; }
-        
-        /* 縮窄內容區塊，模仿手機 App 視覺感 */
         .block-container { max-width: 650px !important; padding-top: 2rem !important; }
-        
-        /* 隱藏原生表單邊框，使畫面更乾淨 */
         div[data-testid="stForm"] { border: none !important; padding: 0 !important; background-color: transparent !important; }
-        
-        /* 輸入框樣式優化 */
         div[data-baseweb="select"] > div, input { border-radius: 10px !important; border: 1.5px solid #E2E8F0 !important; }
         div[data-baseweb="select"] > div:focus-within, input:focus { border-color: #3B82F6 !important; box-shadow: 0 0 0 1px #3B82F6 !important; }
-        
-        /* 客製化狀態橫幅 */
         .status-banner { padding: 20px; border-radius: 16px; text-align: center; color: white; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .banner-available { background: linear-gradient(135deg, #10B981, #059669); }
         .banner-in-use { background: linear-gradient(135deg, #EF4444, #DC2626); }
         .banner-title { font-size: 28px; font-weight: 900; margin: 0; letter-spacing: 1px;}
-        
-        /* 客製化資訊卡片 */
         .info-card-container { display: flex; gap: 15px; margin-bottom: 25px; }
         .info-card { flex: 1; background: white; padding: 20px 15px; border-radius: 16px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #F1F5F9; }
         .info-label { color: #64748B; font-size: 14px; font-weight: bold; margin-bottom: 5px; display: block; }
         .info-value { color: #0F172A; font-size: 26px; font-weight: 900; margin: 0; }
         
-        /* 按鈕樣式大升級 */
-        .borrow-btn div[data-testid="stFormSubmitButton"] > button {
+        /* 表單按鈕共用基礎樣式 */
+        div[data-testid="stFormSubmitButton"] > button {
             width: 100% !important; height: 70px !important;
-            background: linear-gradient(135deg, #3B82F6, #2563EB) !important; color: white !important;
             border-radius: 16px !important; border: none !important;
-            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3) !important; transition: all 0.2s ease !important;
+            transition: all 0.2s ease !important;
         }
-        .return-btn div[data-testid="stFormSubmitButton"] > button {
-            width: 100% !important; height: 70px !important;
-            background: linear-gradient(135deg, #F59E0B, #D97706) !important; color: white !important;
-            border-radius: 16px !important; border: none !important;
-            box-shadow: 0 6px 15px rgba(245, 158, 11, 0.3) !important; transition: all 0.2s ease !important;
+        div[data-testid="stFormSubmitButton"] button p { 
+            font-size: 22px !important; font-weight: 900 !important; color: white !important; 
         }
-        /* 按鈕 Hover 動畫 */
         div[data-testid="stFormSubmitButton"] > button:hover { transform: translateY(-3px) !important; filter: brightness(1.1); }
-        div[data-testid="stFormSubmitButton"] button p { font-size: 22px !important; font-weight: 900 !important; color: white !important;}
         </style>
     """, unsafe_allow_html=True)
 
     st.markdown('<h2 style="text-align:center; font-weight:900; color:#1E293B; margin-bottom: 20px;">🏥 內科超音波登記站</h2>', unsafe_allow_html=True)
 
     if current_status == "可借用":
+        # 動態注入：借用狀態專屬的藍色按鈕樣式
+        st.markdown("""
+            <style>
+            div[data-testid="stFormSubmitButton"] > button {
+                background: linear-gradient(135deg, #3B82F6, #2563EB) !important;
+                box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3) !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
         st.markdown("""
             <div class="status-banner banner-available">
                 <p class="banner-title">✅ 設備在位 (可借用)</p>
@@ -112,9 +103,8 @@ def main():
         with st.container():
             role = st.radio("1. 登記身分", ["醫師", "專科護理師"], horizontal=True)
 
-            st.markdown('<div class="borrow-btn">', unsafe_allow_html=True)
             with st.form("borrow_form"):
-                st.markdown("##### 📝 填寫借用資訊")
+                st.markdown("##### ✍️ 填寫借用資訊")
                 user_select = st.selectbox("2. 使用人姓名", DOCTORS if role == "醫師" else NPS)
                 
                 custom_user = st.text_input("2-1. 補充姓名 (⚠️ 上方選「自行填入」時才需填寫，其餘請留空)", placeholder="請輸入姓名...")
@@ -127,7 +117,7 @@ def main():
                 
                 st.markdown("<br>", unsafe_allow_html=True) 
                 
-                if st.form_submit_button("登記推走設備 🚀"):
+                if st.form_submit_button("登記推走設備 🏃"):
                     final_user = custom_user.strip() if user_select == "_____(自行填入)" else user_select
                     
                     if user_select == "_____(自行填入)" and not final_user:
@@ -147,11 +137,20 @@ def main():
                         df_updated = pd.concat([df_latest, new_rec], ignore_index=True)
                         save_data(df_updated)
                         st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
     else:
         last_row = df.iloc[-1]
         
+        # 動態注入：歸還狀態專屬的橘色按鈕樣式
+        st.markdown("""
+            <style>
+            div[data-testid="stFormSubmitButton"] > button {
+                background: linear-gradient(135deg, #F59E0B, #D97706) !important;
+                box-shadow: 0 6px 15px rgba(245, 158, 11, 0.3) !important;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
         st.markdown("""
             <div class="status-banner banner-in-use">
                 <p class="banner-title">⚠️ 設備使用中</p>
@@ -171,14 +170,13 @@ def main():
             </div>
         """, unsafe_allow_html=True)
 
-        st.markdown('<div class="return-btn">', unsafe_allow_html=True)
         with st.form("return_form"):
             st.info(f"🕒 借出時間：{last_row['使用時間']}")
             st.markdown("##### ✅ 歸還確認清單")
             check = st.checkbox("我確認：探頭已清潔 / 線材已收納 / 功能皆正常", value=False)
             
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.form_submit_button("確認歸還設備 📦"):
+            if st.form_submit_button("確認歸還設備🔙"):
                 if not check:
                     st.warning("⚠️ 請先勾選上方的確認項目")
                 else:
@@ -187,7 +185,6 @@ def main():
                         start_t = datetime.strptime(str(last_row['使用時間']), "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone(timedelta(hours=8)))
                         total_mins = (now - start_t).total_seconds() / 60
                         
-                        # 時間轉換邏輯：超過 60 分鐘轉為小時
                         if total_mins > 60:
                             dur = f"{round(total_mins / 60, 1)}小時"
                         else:
@@ -203,42 +200,37 @@ def main():
                         df_latest.at[last_idx_fresh, "持續時間(分)"] = dur
                         save_data(df_latest)
                     st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     # ==========================================
     # 4. 查看紀錄與統計圖表 (僅顯示當月)
     # ==========================================
     if not df.empty:
         st.divider()
-        with st.expander("📊 查看與統計 (當月紀錄)"):
+        with st.expander("📋 查看與統計 (當月紀錄)"):
             df_display = df.copy()
             df_display.columns = df_display.columns.str.strip()
             
-            # 時間過濾邏輯：將字串轉為 datetime 物件，以利年份與月份比對
             df_display['時間解析'] = pd.to_datetime(df_display['使用時間'], errors='coerce')
             now = get_taiwan_time()
             
-            # 建立篩選條件：只保留與目前「同年」且「同月」的資料
             mask = (df_display['時間解析'].dt.year == now.year) & (df_display['時間解析'].dt.month == now.month)
             df_current_month = df_display[mask].copy()
             
             if not df_current_month.empty:
                 st.markdown("#### 📈 當月統計圖表")
-                # 使用 columns 並排顯示兩張圖表
                 col1, col2 = st.columns(2)
                 
                 with col1:
                     st.markdown("**👤 依使用人次數**")
                     user_counts = df_current_month['使用人'].value_counts()
-                    st.bar_chart(user_counts, color="#3B82F6") # 藍色系
+                    st.bar_chart(user_counts, color="#3B82F6") 
                     
                 with col2:
                     st.markdown("**📍 依使用部位次數**")
                     part_counts = df_current_month['使用部位'].value_counts()
-                    st.bar_chart(part_counts, color="#10B981") # 綠色系
+                    st.bar_chart(part_counts, color="#10B981") 
                 
                 st.markdown("#### 📋 當月詳細紀錄")
-                # 顯示前將輔助用的 '時間解析' 欄位移除
                 df_current_month = df_current_month.drop(columns=['時間解析'])
                 st.dataframe(df_current_month.sort_index(ascending=False), use_container_width=True)
             else:
