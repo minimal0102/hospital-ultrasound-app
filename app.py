@@ -29,7 +29,7 @@ def load_data_fresh():
             df.columns = df.columns.str.strip()
         return df
     except Exception as e:
-        return pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間"])
+        return pd.DataFrame(columns=["狀態", "職稱", "使用人", "使用時間", "使用部位", "目前位置", "歸還人", "歸還時間", "持續時間(分)"])
 
 def save_data(df):
     conn.update(spreadsheet=GSHEET_URL, worksheet="Sheet1", data=df)
@@ -195,11 +195,18 @@ def main():
                     df_latest = load_data_fresh()
                     if not df_latest.empty:
                         last_idx_fresh = df_latest.index[-1]
+                        
+                        # ✨ 關鍵修復：在賦值前強制將欄位轉為字串型態，避免 Pandas 報 TypeError
+                        if "歸還時間" not in df_latest.columns:
+                            df_latest["歸還時間"] = ""
+                        df_latest["歸還時間"] = df_latest["歸還時間"].astype(str)
+                        
+                        if "持續時間(分)" in df_latest.columns:
+                            df_latest['持續時間(分)'] = df_latest['持續時間(分)'].astype(str)
+                        
+                        # 執行賦值
                         df_latest.at[last_idx_fresh, "狀態"] = "歸還"
                         df_latest.at[last_idx_fresh, "歸還時間"] = now.strftime("%Y-%m-%d %H:%M:%S")
-                        
-                        # ✨ 修復 TypeError：強制轉為字串以相容「分鐘/小時」的中文字
-                        df_latest['持續時間(分)'] = df_latest['持續時間(分)'].astype(str)
                         df_latest.at[last_idx_fresh, "持續時間(分)"] = dur
                         
                         save_data(df_latest)
